@@ -1,0 +1,804 @@
+
+ SWAN is preparing computation
+
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in   0.60 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in   1.10 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in   4.95 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in   8.01 % of wet grid points ( 97.50 % required)
+
+ iteration    6
+ accuracy OK in  15.28 % of wet grid points ( 97.50 % required)
+
+ iteration    7
+ accuracy OK in  22.76 % of wet grid points ( 97.50 % required)
+
+ iteration    8
+ accuracy OK in  29.57 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in   1.02 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in   3.34 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in   9.03 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in  19.69 % of wet grid points ( 97.50 % required)
+
+ iteration    6
+ accuracy OK in  41.58 % of wet grid points ( 97.50 % required)
+
+ iteration    7
+ accuracy OK in  64.80 % of wet grid points ( 97.50 % required)
+
+ iteration    8
+ accuracy OK in  84.17 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in   8.40 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in  26.09 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in  66.69 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in  87.05 % of wet grid points ( 97.50 % required)
+
+ iteration    6
+ accuracy OK in  97.50 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in  16.47 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in  20.09 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in  43.38 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in  70.99 % of wet grid points ( 97.50 % required)
+
+ iteration    6
+ accuracy OK in  86.31 % of wet grid points ( 97.50 % required)
+
+ iteration    7
+ accuracy OK in  96.29 % of wet grid points ( 97.50 % required)
+
+ iteration    8
+ accuracy OK in  98.91 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in  11.89 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in  15.19 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in  39.04 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in  68.83 % of wet grid points ( 97.50 % required)
+
+ iteration    6
+ accuracy OK in  86.73 % of wet grid points ( 97.50 % required)
+
+ iteration    7
+ accuracy OK in  96.44 % of wet grid points ( 97.50 % required)
+
+ iteration    8
+ accuracy OK in  98.25 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in  12.22 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in  11.26 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in  31.59 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in  49.91 % of wet grid points ( 97.50 % required)
+
+ iteration    6
+ accuracy OK in  74.69 % of wet grid points ( 97.50 % required)
+
+ iteration    7
+ accuracy OK in  91.30 % of wet grid points ( 97.50 % required)
+
+ iteration    8
+ accuracy OK in  96.64 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in   3.08 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in   8.20 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in  18.70 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in  38.67 % of wet grid points ( 97.50 % required)
+
+ iteration    6
+ accuracy OK in  55.09 % of wet grid points ( 97.50 % required)
+
+ iteration    7
+ accuracy OK in  71.24 % of wet grid points ( 97.50 % required)
+
+ iteration    8
+ accuracy OK in  83.14 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in   4.84 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in  12.18 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in  35.44 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in  67.33 % of wet grid points ( 97.50 % required)
+
+ iteration    6
+ accuracy OK in  90.69 % of wet grid points ( 97.50 % required)
+
+ iteration    7
+ accuracy OK in  99.24 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in   5.15 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in  14.08 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in  40.23 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in  75.65 % of wet grid points ( 97.50 % required)
+
+ iteration    6
+ accuracy OK in  97.66 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in   9.23 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in  27.66 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in  60.14 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in  92.85 % of wet grid points ( 97.50 % required)
+
+ iteration    6
+ accuracy OK in  99.52 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in  25.57 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in  38.04 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in  79.17 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in  97.58 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in  10.05 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in  13.64 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in  33.97 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in  66.97 % of wet grid points ( 97.50 % required)
+
+ iteration    6
+ accuracy OK in  89.16 % of wet grid points ( 97.50 % required)
+
+ iteration    7
+ accuracy OK in  98.34 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in  18.31 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in  16.89 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in  64.63 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in  94.93 % of wet grid points ( 97.50 % required)
+
+ iteration    6
+ accuracy OK in  99.12 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in  36.92 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in  43.24 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in  76.89 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in  93.30 % of wet grid points ( 97.50 % required)
+
+ iteration    6
+ accuracy OK in  98.14 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in  31.00 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in  46.07 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in  76.09 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in  98.17 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in  16.05 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in  19.92 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in  38.98 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in  74.31 % of wet grid points ( 97.50 % required)
+
+ iteration    6
+ accuracy OK in  89.65 % of wet grid points ( 97.50 % required)
+
+ iteration    7
+ accuracy OK in  98.20 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in  27.00 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in  47.52 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in  73.92 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in  95.81 % of wet grid points ( 97.50 % required)
+
+ iteration    6
+ accuracy OK in  99.78 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in   3.98 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in  23.82 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in  63.16 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in  93.75 % of wet grid points ( 97.50 % required)
+
+ iteration    6
+ accuracy OK in  99.55 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in   4.27 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in  17.06 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in  46.53 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in  82.56 % of wet grid points ( 97.50 % required)
+
+ iteration    6
+ accuracy OK in  98.13 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in   6.04 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in  18.90 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in  58.73 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in  93.29 % of wet grid points ( 97.50 % required)
+
+ iteration    6
+ accuracy OK in  99.34 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in   3.95 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in  15.16 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in  44.91 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in  76.99 % of wet grid points ( 97.50 % required)
+
+ iteration    6
+ accuracy OK in  97.41 % of wet grid points ( 97.50 % required)
+
+ iteration    7
+ accuracy OK in  99.97 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in   3.65 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in  10.08 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in  40.06 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in  80.61 % of wet grid points ( 97.50 % required)
+
+ iteration    6
+ accuracy OK in  97.83 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in   6.51 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in  25.71 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in  72.75 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in  95.92 % of wet grid points ( 97.50 % required)
+
+ iteration    6
+ accuracy OK in  99.92 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in  24.63 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in  52.46 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in  95.26 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in  99.90 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in  32.17 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in  61.68 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in  84.30 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in  98.82 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in  28.26 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in  42.50 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in  69.50 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in  97.31 % of wet grid points ( 97.50 % required)
+
+ iteration    6
+ accuracy OK in  99.72 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in  26.06 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in  33.44 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in  64.42 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in  97.19 % of wet grid points ( 97.50 % required)
+
+ iteration    6
+ accuracy OK in  99.74 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in  35.02 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in  40.95 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in  76.26 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in  98.47 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in  60.15 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in  65.90 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in  90.61 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in  98.86 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in  38.67 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in  53.75 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in  86.58 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in  98.04 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in  23.01 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in  24.44 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in  66.64 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in  96.27 % of wet grid points ( 97.50 % required)
+
+ iteration    6
+ accuracy OK in  99.39 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in  17.97 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in  22.41 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in  59.71 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in  95.15 % of wet grid points ( 97.50 % required)
+
+ iteration    6
+ accuracy OK in  99.32 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in  21.94 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in  30.63 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in  65.28 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in  96.14 % of wet grid points ( 97.50 % required)
+
+ iteration    6
+ accuracy OK in  99.64 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in  27.46 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in  39.80 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in  80.90 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in  97.93 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in  29.02 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in  45.35 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in  90.21 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in  99.79 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in  17.65 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in  36.63 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in  65.05 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in  92.42 % of wet grid points ( 97.50 % required)
+
+ iteration    6
+ accuracy OK in  99.67 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1
+ Number of threads during execution of parallel region =  3
+
+ iteration    1
+       not possible to compute accuracy, first iteration
+
+ iteration    2
+ accuracy OK in   4.55 % of wet grid points ( 97.50 % required)
+
+ iteration    3
+ accuracy OK in  10.70 % of wet grid points ( 97.50 % required)
+
+ iteration    4
+ accuracy OK in  37.60 % of wet grid points ( 97.50 % required)
+
+ iteration    5
+ accuracy OK in  67.80 % of wet grid points ( 97.50 % required)
+
+ iteration    6
+ accuracy OK in  90.32 % of wet grid points ( 97.50 % required)
+
+ iteration    7
+ accuracy OK in  99.01 % of wet grid points ( 97.50 % required)
+
++SWAN is processing output request    1

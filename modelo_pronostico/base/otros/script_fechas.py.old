@@ -1,0 +1,73 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Sun Aug 30 09:13:34 2020
+
+@author: luis
+"""
+
+import numpy as np
+from datetime import datetime, timedelta, date
+import pandas as pd 
+import os,sys,shutil
+if len(sys.argv) == 2 :
+    mdias = int(sys.argv[1])
+else:
+    mdias = 5
+
+f0prim            = date.today()
+f0        = datetime(f0prim.year,f0prim.month,f0prim.day,0)
+f1            = f0 + timedelta (days=mdias)
+fecha_ini      = f0.isoformat()
+fecha_end      = f1.isoformat()
+
+
+data1    = pd.date_range(start=fecha_ini, end=fecha_end,freq='3 H')
+df       = pd.DataFrame(data1,columns=['Time'], dtype=str)
+df.Time     = df['Time'].str.replace(".000000000", "")
+df.Time     = df['Time'].str.replace("T", ".")
+df.Time     = df['Time'].str.replace(":", "")
+df.Time     = df['Time'].str.replace("-", "")
+df.Time     = df['Time'].str.replace("Z", "")
+ttiempo  = df
+timp = np.array(ttiempo.Time, dtype=str)
+str1 = '../outputs/'
+output_name = timp[0] +'_'+timp[-1]+'.mat'
+output_file = str1 + output_name
+windi = open('wind.log')
+vientos = windi.read()
+windi.close()
+
+#boundu = open('erdap2swan.log')
+#boundy = boundu.read()
+#boundu.close()
+
+#os.system('cp .\base\INPUT .\run\input')
+#input file
+#read input file
+fin = open('./base/INPUT', 'rt')
+#read file contents to string
+data = fin.read()
+#replace all occurrences of the required string
+data = data.replace('FECHA_INI', timp[0])
+data = data.replace('FECHA_FIN', timp[-1])
+#data = data.replace('BOUNDARYS', boundy)
+data = data.replace('GRILLA_VIENTOS', vientos)
+data = data.replace('out.mat',output_file)
+#close the input file
+fin.close()
+#open the input file in write mode
+fin = open("./run/INPUT", "wt")
+#overrite the input file with the resulting data
+fin.write(data)
+#close the file
+fin.close()
+
+# creo un log para postproceso
+fff = open("./logs/run_" + timp[0] + '_' + str(mdias),'wt')
+fff.write(fecha_ini)
+fff.write('\n')
+fff.write(fecha_end)
+fff.write('\n')
+fff.write(output_name)
+fff.close() 

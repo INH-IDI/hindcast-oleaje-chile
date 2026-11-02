@@ -1,0 +1,36 @@
+$===============================================================
+$ PLANTILLA SWAN PARA PROPAGACION DE OLEAJE UNITARIO (Hs = 1.0 m)
+$ Malla no estructurada: chile_250k (255,521 nodos, 501,598 triangulos)
+$===============================================================
+PROJ 'chile_tf' '{WORKER_ID}'
+
+SET LEVEL 1.00
+SET NAUTICAL
+SET DEPMIN 5
+COORDINATES SPHErical
+MODE NONSTationary TWODimensional
+
+$======================== ENTRADA ===============================
+CGRID UNSTRUCTURED CIRCLE 36 0.035 0.30 16
+
+READ UNSTRUCTURED triangle '{MESH_PREFIX}'
+INPGRID BOTTOM UNSTRUCTURED
+READINP BOTTOM -1.0 '{BOT_FILE}' 3 0 FREE
+
+$ CONDICION DE BORDE DE OLEAJE UNITARIO (Hs = 1.0 m)
+BOUND SHAPESPEC JONSWAP 3.5 DSPR DEGR
+BOUndspec SIDE 2 CCW CON FILE 'casos.tpar' 1
+
+$======================== FISICA ================================
+OFF QUAD
+OFF WCAP
+BREAKING
+FRICTION
+
+NUM STOPC dabs=0.005 drel=0.015 curvat=0.005 npnts=97.5 STAT mxitst={MXITST}
+
+$======================== SALIDA ================================
+BLOCK 'COMPGRID' NOHEAD '{OUT_MAT}' LAY 3 HS DIR PDIR OUTPUT 20240101.000000 1 HR
+
+{COMPUTE_COMMANDS}
+STOP

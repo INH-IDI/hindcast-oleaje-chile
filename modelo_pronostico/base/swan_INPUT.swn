@@ -1,0 +1,291 @@
+$===============================================================
+PROJ 'chile' 't0'
+
+SET LEVEL 1.00
+SET NAUTICAL
+SET DEPMIN 5
+COORDINATES SPHErical
+MODE NONSTationary TWODimensional
+
+$======================== ENTRADA ===============================         
+CGRID UNSTRUCTURED CIRCLE 36 0.0345 0.6666 24
+
+READ UNSTRUCTURED triangle '../malla/chile_250k' 
+INPGRID BOTTOM UNSTRUCTURED 
+READINP BOTTOM -1.0 '../malla/chile_250k.bot' 3 0 FREE
+
+INPGRID WIND REG -84.0 -50.0 0.0 34 80 0.5 0.5  NONSTATionary FECHA_INI 3.0 HR FECHA_FIN
+READINP WIND 1 '../bound/vientos.bot' 3 0 1 1 FREE
+
+$BOUNDARY CON ESPECTROS
+BOU SIDE 2 CCW VAR FILE &
+1.065743057823 '../bound/lado_000.spc'   1 &
+2.657430578234 '../bound/lado_001.spc'   1 &
+3.606574305782 '../bound/lado_002.spc'   1 &
+4.606574305782 '../bound/lado_003.spc'   1 &
+5.606574305782 '../bound/lado_004.spc'   1 &
+6.606574305782 '../bound/lado_005.spc'   1 &
+7.606574305782 '../bound/lado_006.spc'   1 &
+8.724608294532 '../bound/lado_007.spc'   1 &
+9.724608294532 '../bound/lado_008.spc'   1 &
+10.72460829453 '../bound/lado_009.spc'   1 &
+11.72460829453 '../bound/lado_010.spc'   1 &
+12.72460829453 '../bound/lado_011.spc'   1 &
+13.72460829453 '../bound/lado_012.spc'   1 &
+14.72460829453 '../bound/lado_013.spc'   1 &
+15.72460829453 '../bound/lado_014.spc'   1 &
+16.72460829453 '../bound/lado_015.spc'   1 &
+17.84264228328 '../bound/lado_016.spc'   1 &
+18.54974906446 '../bound/lado_017.spc'   1 &
+19.25685584565 '../bound/lado_018.spc'   1 &
+20.37488983440 '../bound/lado_019.spc'   1 &
+21.37488983440 '../bound/lado_020.spc'   1 &
+22.49292382315 '../bound/lado_021.spc'   1 &
+23.49292382315 '../bound/lado_022.spc'   1 &
+24.49292382315 '../bound/lado_023.spc'   1 &
+25.49292382315 '../bound/lado_024.spc'   1 &
+26.49292382315 '../bound/lado_025.spc'   1 &
+27.49292382315 '../bound/lado_026.spc'   1 &
+28.49292382315 '../bound/lado_027.spc'   1 &
+29.49292382315 '../bound/lado_028.spc'   1 
+
+$===========================Physics=================================
+INIT DEFault
+
+GEN3 ST6 2.8E-6 3.5E-5 U10P 32. AGROW
+SSWELL ZIEGER 0.00025
+NEGATINP 0.04
+
+QUADrupl iquad 2
+BREAKING
+FRICTION
+
+NUM STOPC dabs=0.005 drel=0.01 curvat=0.005 npnts=99.5 NONSTAT mxitns=2 limiter=0.1 DIRIMPL cdd=0.5 CTHETA cfl=0.90 CSIGMA cfl=0.90 
+$======================== SALIDA ===============================
+
+$ AGUAS PROFUNDAS $
+POINTS 'ari'          -71.000000 -18.800000
+POINTS 'tar'          -71.000000 -20.500000
+POINTS 'ant'          -71.000000 -23.800000
+POINTS 'ata'          -71.500000 -27.500000
+POINTS 'coq'          -72.000000 -30.000000
+POINTS 'val'          -72.000000 -33.000000
+POINTS 'ohi'          -72.500000 -34.300000
+POINTS 'mau'          -72.500000 -35.000000
+POINTS 'nub'          -73.000000 -35.800000
+POINTS 'bio'          -74.000000 -37.000000
+POINTS 'ara'          -74.000000 -39.000000
+POINTS 'rio'          -74.000000 -39.800000
+POINTS 'lag'          -74.500000 -42.000000
+
+
+
+$ PUERTOS CHILENOS $
+POINTS 'Arica'        -70.32557108 -18.46462664
+POINTS 'Arica2'       -70.321 -18.512
+POINTS 'AricaS'       -70.323 -18.522
+POINTS 'AricaN'       -70.324 -18.505
+POINTS 'Pisagua'      -70.22760206 -19.58315700
+POINTS 'Iquique'      -70.15595802 -20.19525446
+POINTS 'Tocopill'     -70.21468089 -22.07912443
+POINTS 'Mejillon'     -70.41330395 -23.04780068
+POINTS 'Antofaga'     -70.40981244 -23.64259635
+POINTS 'Taltal'       -70.48927836 -25.38992987
+POINTS 'Chanaral'     -70.66821556 -26.33811955
+POINTS 'Huasco'       -71.24156541 -28.43273141
+POINTS 'Coquimbo'     -71.32602041 -29.93531982
+POINTS 'Quintero'     -71.51313943 -32.75667774
+POINTS 'Valparai'     -71.61445549 -33.03250670
+POINTS 'San_Anto'     -71.6272     -33.5882
+POINTS 'Constitu'     -72.46652495 -35.34937592
+POINTS 'Talcahu'      -73.08401561 -36.69783754
+POINTS 'San_Vice'     -73.15487021 -36.73600767
+POINTS 'Coronel'      -73.16008188 -37.03577502
+POINTS 'Corral'       -73.41433210 -39.85792699
+POINTS 'Ancud'        -73.83140616 -41.84387493
+POINTS 'Carel'        -73.71382836 -41.78671019
+POINTS 'Guafo'        -74.47623237 -43.47559793
+POINTS 'funwave'      -71.632204   -33.584499     $ FUNWAVE INPUT
+
+$  NODOS INTERES  $
+POINTS 'ari1'         -70.336407 -18.485138
+POINTS 'pisa1'        -70.227602 -19.583157
+POINTS 'iq1'          -70.166362 -20.216264
+POINTS 'toc1'         -70.205758 -22.083011
+POINTS 'mej1'         -70.452367 -23.065799
+POINTS 'ant1'         -70.417522 -23.559505
+POINTS 'ant2'         -70.413229 -23.666068
+POINTS 'tal1'         -70.490981 -25.393783
+POINTS 'cha1'         -70.668216 -26.338120
+POINTS 'cal1'         -70.836403 -27.040376
+POINTS 'bingle1'      -70.880360 -27.109951
+POINTS 'hua1'         -71.227617 -28.443753
+POINTS 'chaace1'      -71.497728 -29.061777
+POINTS 'pcho1'        -71.465488 -29.259540
+POINTS 'chung1'       -71.325104 -29.456046
+POINTS 'lse1'         -71.290914 -29.907355
+POINTS 'coq1'         -71.324927 -29.944655
+POINTS 'lahe1'        -71.363691 -29.969801
+POINTS 'gua1'         -71.426767 -30.173517
+POINTS 'ton1'         -71.494874 -30.238092
+POINTS 'pal1'         -71.597713 -30.280482
+POINTS 'lvi1'         -71.517113 -31.897986
+POINTS 'pap1'         -71.454800 -32.488205
+POINTS 'mai1'         -71.445898 -32.634302
+POINTS 'hor1'         -71.485863 -32.695301
+POINTS 'qui1'         -71.513139 -32.756678
+POINTS 'con1'         -71.526644 -32.902912
+POINTS 'pla_v1'       -71.555791 -32.997476
+POINTS 'aper_1'       -71.564619 -33.012831
+POINTS 'caba1'        -71.572856 -33.020610
+POINTS 'bval1'        -71.618287 -33.034175
+POINTS 'elmem1'       -71.630195 -33.019214
+POINTS 'lver'         -71.693994 -33.078584
+POINTS 'quin1'        -71.713424 -33.179487
+POINTS 'alg1'         -71.705036 -33.327155
+POINTS 'cart1'        -71.619970 -33.539479
+POINTS 'san1'         -71.629562 -33.585766
+POINTS 'pich1'        -72.012046 -34.367070
+POINTS 'buc1'         -72.059695 -34.632719
+POINTS 'llic1'        -72.093868 -34.743372
+POINTS 'dua1'         -72.204087 -34.903310
+POINTS 'cons1'        -72.466525 -35.349376
+POINTS 'pell1'        -72.605599 -35.783633
+POINTS 'dich1'        -72.949900 -36.514123
+POINTS 'talc'         -73.084016 -36.697838
+POINTS 'sanvic1'      -73.15487 -36.736008
+POINTS 'cor1'         -73.160082 -37.035775
+POINTS 'lota1'        -73.185175 -37.103900
+POINTS 'lebu1'        -73.699320 -37.553526
+POINTS 'tir1'         -73.551508 -38.333355
+POINTS 'meh1'         -73.298084 -39.423624
+POINTS 'corr1'        -73.414332 -39.857927
+POINTS 'bmansa1'      -73.769029 -40.578810
+POINTS 'esta1'        -73.863978 -41.411064
+POINTS 'carel1'       -73.713828 -41.786710
+POINTS 'anc1'         -73.831406 -41.843875
+POINTS 'guaf1'        -74.476232 -43.475598
+
+
+
+$POINTS 'boya_CA'      -71.570431   -33.020692  
+
+
+$$$ TABLAS $$$$
+$ REESCRIBE ARCHIVOS DE RESULTADOS$
+
+$ AGUAS PROFUNDAS $
+TABLE 'ari'            HEAD '../output/dw/ari.txt'                  TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'tar'            HEAD '../output/dw/tar.txt'                  TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'ant'            HEAD '../output/dw/ant.txt'                  TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'ata'            HEAD '../output/dw/ata.txt'                  TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'coq'            HEAD '../output/dw/coq.txt'                  TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'val'            HEAD '../output/dw/val.txt'                  TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'ohi'            HEAD '../output/dw/ohi.txt'                  TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'mau'            HEAD '../output/dw/mau.txt'                  TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'nub'            HEAD '../output/dw/nub.txt'                  TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'bio'            HEAD '../output/dw/bio.txt'                  TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'ara'            HEAD '../output/dw/ara.txt'                  TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'rio'            HEAD '../output/dw/rio.txt'                  TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'lag'            HEAD '../output/dw/lag.txt'                  TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+
+$PUERTOS$ 
+TABLE 'Arica'          HEAD '../output/puertos/Arica.txt'           TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'Arica2'         HEAD '../output/puertos/Arica2.txt'          TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'AricaS'         HEAD '../output/puertos/AricaS.txt'          TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'AricaN'         HEAD '../output/puertos/AricaN.txt'          TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'Pisagua'        HEAD '../output/puertos/Pisagua.txt'         TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'Iquique'        HEAD '../output/puertos/Iquique.txt'         TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'Tocopill'       HEAD '../output/puertos/Tocopilla.txt'       TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'Mejillon'       HEAD '../output/puertos/Mejillones.txt'      TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'Antofaga'       HEAD '../output/puertos/Antofagasta.txt'     TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'Taltal'         HEAD '../output/puertos/Taltal.txt'          TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'Chanaral'       HEAD '../output/puertos/Chanaral.txt'        TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'Huasco'         HEAD '../output/puertos/Huasco.txt'          TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'Coquimbo'       HEAD '../output/puertos/Coquimbo.txt'        TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'Quintero'        HEAD '../output/puertos/Quintero.txt'       TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'Valparai'       HEAD '../output/puertos/Valparaiso.txt'      TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'San_Anto'       HEAD '../output/puertos/San_Antonio.txt'     TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'Constitu'       HEAD '../output/puertos/Constitucion.txt'    TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'Talcahu'        HEAD '../output/puertos/Talcahuano.txt'      TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'San_Vice'       HEAD '../output/puertos/San_Vicente.txt'     TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'Coronel'        HEAD '../output/puertos/Coronel.txt'         TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'Corral'         HEAD '../output/puertos/Corral.txt'          TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'Ancud'          HEAD '../output/puertos/Ancud.txt'           TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'Carel'          HEAD '../output/puertos/Carel.txt'           TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'Guafo'          HEAD '../output/puertos/Guafo.txt'           TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'funwave'        HEAD '../output/puertos/funwave.txt'         TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+$TABLE 'boya_CA'       HEAD '../output/puertos/boya_CA.txt'         TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+
+
+$PUNTOS DE INTERES$
+TABLE 'ari1'           HEAD '../output/interes/ari1.txt'                TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'pisa1'          HEAD '../output/interes/pisa1.txt'               TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'iq1'            HEAD '../output/interes/iq1.txt'                 TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'toc1'           HEAD '../output/interes/toc1.txt'                TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'mej1'           HEAD '../output/interes/mej1.txt'                TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'ant1'           HEAD '../output/interes/ant1.txt'                TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'ant2'           HEAD '../output/interes/ant2.txt'                TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'tal1'           HEAD '../output/interes/tal1.txt'                TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'cha1'           HEAD '../output/interes/cha1.txt'                TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'cal1'           HEAD '../output/interes/cal1.txt'                TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'bingle1'        HEAD '../output/interes/bingle1.txt'             TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'hua1'           HEAD '../output/interes/hua1.txt'                TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'chaace1'        HEAD '../output/interes/chaace1.txt'             TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'pcho1'          HEAD '../output/interes/pcho1.txt'               TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'chung1'         HEAD '../output/interes/chung1.txt'              TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'lse1'           HEAD '../output/interes/lse1.txt'                TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'coq1'           HEAD '../output/interes/coq1.txt'                TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'lahe1'          HEAD '../output/interes/lahe1.txt'               TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'gua1'           HEAD '../output/interes/gua1.txt'                TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'ton1'           HEAD '../output/interes/ton1.txt'                TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'pal1'           HEAD '../output/interes/pal1.txt'                TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'lvi1'           HEAD '../output/interes/lvi1.txt'                TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'pap1'           HEAD '../output/interes/pap1.txt'                TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'mai1'           HEAD '../output/interes/mai1.txt'                TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'hor1'           HEAD '../output/interes/hor1.txt'                TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'qui1'           HEAD '../output/interes/qui1.txt'                TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'con1'           HEAD '../output/interes/con1.txt'                TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'pla_v1'         HEAD '../output/interes/pla_v1.txt'              TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'aper_1'         HEAD '../output/interes/aper_1.txt'              TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'caba1'          HEAD '../output/interes/caba1.txt'               TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'bval1'          HEAD '../output/interes/bval1.txt'               TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'elmem1'         HEAD '../output/interes/elmem1.txt'              TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'lver'           HEAD '../output/interes/lver.txt'                TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'quin1'          HEAD '../output/interes/quin1.txt'               TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'alg1'           HEAD '../output/interes/alg1.txt'                TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'cart1'          HEAD '../output/interes/cart1.txt'               TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'san1'           HEAD '../output/interes/san1.txt'                TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'pich1'          HEAD '../output/interes/pich1.txt'               TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'buc1'           HEAD '../output/interes/buc1.txt'                TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'llic1'          HEAD '../output/interes/llic1.txt'               TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'dua1'           HEAD '../output/interes/dua1.txt'                TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'cons1'          HEAD '../output/interes/cons1.txt'               TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'pell1'          HEAD '../output/interes/pell1.txt'               TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'dich1'          HEAD '../output/interes/dich1.txt'               TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'talc'           HEAD '../output/interes/talc.txt'                TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'sanvic1'        HEAD '../output/interes/sanvic1.txt'             TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'cor1'           HEAD '../output/interes/cor1.txt'                TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'lota1'          HEAD '../output/interes/lota1.txt'               TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'lebu1'          HEAD '../output/interes/lebu1.txt'               TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'tir1'           HEAD '../output/interes/tir1.txt'                TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'meh1'           HEAD '../output/interes/meh1.txt'                TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'corr1'          HEAD '../output/interes/corr1.txt'               TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'bmansa1'        HEAD '../output/interes/bmansa1.txt'             TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'esta1'          HEAD '../output/interes/esta1.txt'               TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'carel1'         HEAD '../output/interes/carel1.txt'              TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'anc1'           HEAD '../output/interes/anc1.txt'                TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+TABLE 'guaf1'          HEAD '../output/interes/guaf1.txt'               TIME XP YP  HS TPS TMM10 TM01 TM02 PDIR DEP DIR DSPR  WIND  OUTPUT FECHA_INI 1 HR 
+
+
+
+
+$$$ BLOQUES $$$$
+BLOCK     'COMPGRID'  NOHEAD '../output/SWAN_CHILE.nc'          LAY 3 XP YP DEP HS DIR RTP                  WIND  OUTPUT FECHA_INI 3   HR
+
+TEST 10
+
+COMPUTE STAT     FECHA_INI
+COMPUTE NONSTAT  FECHA_INI 30 MIN FECHA_FIN
+STOP
+
