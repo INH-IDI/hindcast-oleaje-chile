@@ -19,6 +19,7 @@ trabajo_swan/matrices/*.nc
 datos_ap_uv/raw/*.txt
 datos_ap_uv/nodos_1deg/*.npz
 datos_ap_uv/processed/*.nc
+aplicacion_hindcast/forecast_cache/*.npz
 
 # Redundant mesh formats and binaries not needed by transfer_lib or SWAN unstructured ADCIRC/Triangle input
 modelo_pronostico/malla/chile_250k.14

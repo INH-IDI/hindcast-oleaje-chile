@@ -25,10 +25,12 @@ from transfer_lib import (
     WeightingConfig,
     MultiBuoyWeighter,
     load_coastal_sites,
+    NOAAWaveForecastClient,
+    DeepWaterForecastDB,
 )
 
 st.set_page_config(
-    page_title="Hindcasting de Oleaje Chile - Funciones de Transferencia SWAN",
+    page_title="Oleaje Chile - Hindcasting & Forecasting NOAA WW3",
     page_icon="🌊",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -36,8 +38,18 @@ st.set_page_config(
 
 
 @st.cache_resource
-def get_engine(buoy_mode: str) -> WaveHindcastEngine:
-    return WaveHindcastEngine(buoy_mode=buoy_mode)
+def get_hindcast_engine(buoy_mode: str) -> WaveHindcastEngine:
+    return WaveHindcastEngine(buoy_mode=buoy_mode, mode="hindcast")
+
+
+def get_forecast_engine(buoy_mode: str, server: str, force_refresh: bool = False) -> WaveHindcastEngine:
+    srv_key = "nomads" if "nomads" in server.lower() else "erddap"
+    return WaveHindcastEngine(
+        buoy_mode=buoy_mode,
+        mode="forecast",
+        forecast_server=srv_key,
+        force_refresh_forecast=force_refresh,
+    )
 
 
 @st.cache_data
@@ -91,17 +103,39 @@ def build_wave_rose(df: pd.DataFrame, hm0_col: str, dir_col: str, title: str) ->
     return fig
 
 
-def main():
-    st.title("🌊 Sistema de Hindcasting Rápido de Oleaje en Chile")
-    st.markdown(
-        "**Método de Matrices de Transferencia ($K_a$ y Dirección) sobre Malla No Estructurada SWAN `chile_250k` "
-        "y Ponderación Espacial-Direccional Multi-Boya de Aguas Profundas**"
-    )
+LOGO_INH = APP_DIR / "assets" / "INH.png"
 
+DISCLAIMER_TEXT = (
+    "**Aviso legal (disclaimer):** Los datos presentados en esta aplicación (tanto de hindcasting histórico "
+    "como de pronóstico operacional NOAA WW3) son **aproximaciones** obtenidas mediante modelación numérica "
+    "y funciones de transferencia espectral, por lo que pueden diferir de las condiciones reales de oleaje. "
+    "Su uso es **bajo su propio riesgo**; el Instituto Nacional de Hidráulica no se hace responsable por decisiones "
+    "operacionales, de navegación o daños derivados de su utilización."
+)
+
+
+def render_disclaimer():
+    st.divider()
+    st.caption(DISCLAIMER_TEXT)
+
+
+def main():
     sites_df = get_sites_catalog()
 
     # ================= BARRA LATERAL =================
     with st.sidebar:
+        st.header("Modo de Operación")
+        sim_mode = st.radio(
+            "Seleccione el modo:",
+            [
+                "⏳ Hindcasting Histórico (1980 - 2015)",
+                "🔮 Forecasting Operacional NOAA WW3 (Tiempo Real)",
+            ],
+            index=0,
+        )
+        is_forecast = "Forecasting" in sim_mode
+
+        st.divider()
         st.header("1. Selección de Punto Costero")
         sel_mode = st.radio(
             "Modo de ubicación:",
@@ -154,26 +188,90 @@ def main():
         dist_power = st.slider("Exponente de distancia (p):", min_value=1.0, max_value=4.0, value=2.0, step=0.5)
 
         st.divider()
-        st.header("3. Parámetros y Fechas")
-        period_var = st.selectbox("Periodo de entrada AP:", ["Tp", "Tm", "Tz", "Te"], index=0)
-        dir_var = st.selectbox("Dirección de entrada AP:", ["Dm", "Dp"], index=0)
-        dt_hours = st.selectbox(
-            "Paso de tiempo (Resolución):",
-            options=[1, 3],
-            format_func=lambda x: "Cada 1 hora (Interpolado horario)" if x == 1 else "Cada 3 horas (Nativo Atlas UV)",
-            index=0,
-        )
-        col_d1, col_d2 = st.columns(2)
-        start_year = col_d1.number_input("Año inicio:", min_value=1980, max_value=2015, value=2010)
-        end_year = col_d2.number_input("Año fin:", min_value=1980, max_value=2015, value=2015)
-        if end_year < start_year:
-            end_year = start_year
+        if is_forecast:
+            st.header("3. Parámetros de Pronóstico NOAA")
+            forecast_server = st.selectbox(
+                "Servidor NOAA:",
+                options=["erddap", "nomads"],
+                format_func=lambda x: "NOAA ERDDAP (WW3 Global - Recomendado)" if x == "erddap" else "NOAA NOMADS (GFS-Wave GRIB2)",
+                index=0,
+            )
+            btn_refresh = st.button("🔄 Actualizar Pronóstico NOAA", help="Descarga los datos más recientes desde los servidores de NOAA")
+            horizon_opt = st.selectbox(
+                "Horizonte de visualización:",
+                options=["todo", "24h", "48h", "72h", "120h"],
+                format_func=lambda x: {
+                    "todo": "Todo el pronóstico disponible (~5 a 6 días)",
+                    "24h": "Próximas 24 horas (1 día)",
+                    "48h": "Próximas 48 horas (2 días)",
+                    "72h": "Próximas 72 horas (3 días)",
+                    "120h": "Próximos 5 días",
+                }[x],
+                index=0,
+            )
+            period_var = "Tp"
+            dir_var = "Dm"
+            dt_hours = st.selectbox(
+                "Paso de tiempo (Resolución):",
+                options=[3, 1],
+                format_func=lambda x: "Cada 3 horas (Nativo NOAA WW3)" if x == 3 else "Cada 1 hora (Interpolado horario)",
+                index=0,
+            )
+            start_year = 0
+            end_year = 0
+        else:
+            st.header("3. Parámetros y Fechas")
+            btn_refresh = False
+            forecast_server = "erddap"
+            horizon_opt = "todo"
+            period_var = st.selectbox("Periodo de entrada AP:", ["Tp", "Tm", "Tz", "Te"], index=0)
+            dir_var = st.selectbox("Dirección de entrada AP:", ["Dm", "Dp"], index=0)
+            dt_hours = st.selectbox(
+                "Paso de tiempo (Resolución):",
+                options=[1, 3],
+                format_func=lambda x: "Cada 1 hora (Interpolado horario)" if x == 1 else "Cada 3 horas (Nativo Atlas UV)",
+                index=0,
+            )
+            col_d1, col_d2 = st.columns(2)
+            start_year = col_d1.number_input("Año inicio:", min_value=1980, max_value=2015, value=2010)
+            end_year = col_d2.number_input("Año fin:", min_value=1980, max_value=2015, value=2015)
+            if end_year < start_year:
+                end_year = start_year
 
-    # Cargar motor y ejecutar hindcast
+    # Encabezado Principal con Logo INH
+    col_logo, col_title = st.columns([1, 9], vertical_alignment="center")
+    with col_logo:
+        if LOGO_INH.exists():
+            st.image(str(LOGO_INH), width=110)
+    with col_title:
+        title_text = (
+            "🔮 Sistema de Pronóstico Operacional de Oleaje (NOAA WW3)"
+            if is_forecast
+            else "🌊 Sistema de Hindcasting Rápido de Oleaje en Chile"
+        )
+        subtitle_text = (
+            "**Pronóstico de Oleaje en Aguas Someras mediante Matrices de Transferencia SWAN `chile_250k` "
+            "y Forzamiento Espectral Global NOAA WAVEWATCH III (ERDDAP / NOMADS)**"
+            if is_forecast
+            else "**Método de Matrices de Transferencia ($K_a$ y Dirección) sobre Malla No Estructurada SWAN `chile_250k` "
+            "y Ponderación Espacial-Direccional Multi-Boya de Aguas Profundas**"
+        )
+        st.title(title_text)
+        st.markdown(subtitle_text)
+
+    # Cargar motor y ejecutar simulación (Hindcast o Forecast)
     try:
-        engine = get_engine(buoy_grid)
-    except FileNotFoundError as e:
-        st.warning(f"Base de datos en construcción: {e}")
+        if is_forecast:
+            engine = get_forecast_engine(
+                buoy_mode=buoy_grid,
+                server=forecast_server,
+                force_refresh=btn_refresh,
+            )
+        else:
+            engine = get_hindcast_engine(buoy_grid)
+    except Exception as e:
+        st.error(f"Error cargando base de datos ({'Pronóstico NOAA' if is_forecast else 'Hindcast'}): {e}")
+        render_disclaimer()
         st.stop()
 
     w_cfg = WeightingConfig(
@@ -184,13 +282,30 @@ def main():
         dir_power=dir_power,
     )
 
+    if is_forecast:
+        all_times = engine.ap_db.timestamps
+        start_date = str(all_times[0])
+        if horizon_opt == "24h":
+            end_date = str(all_times[0] + pd.Timedelta(hours=24))
+        elif horizon_opt == "48h":
+            end_date = str(all_times[0] + pd.Timedelta(hours=48))
+        elif horizon_opt == "72h":
+            end_date = str(all_times[0] + pd.Timedelta(hours=72))
+        elif horizon_opt == "120h":
+            end_date = str(all_times[0] + pd.Timedelta(hours=120))
+        else:
+            end_date = str(all_times[-1])
+    else:
+        start_date = f"{int(start_year)}-01-01"
+        end_date = f"{int(end_year)}-12-31 23:59:59"
+
     t0 = time.perf_counter()
-    res = engine.run_hindcast(
+    res = engine.run_simulation(
         lon=lon_target,
         lat=lat_target,
         site_name=site_label,
-        start_date=f"{int(start_year)}-01-01",
-        end_date=f"{int(end_year)}-12-31 23:59:59",
+        start_date=start_date,
+        end_date=end_date,
         period_var=period_var,
         dir_var=dir_var,
         weighting_config=w_cfg,
@@ -200,19 +315,27 @@ def main():
 
     # Métricas superiores
     m1, m2, m3, m4, m5, m6 = st.columns(6)
-    m1.metric("Sitio Costero", res.site_name)
-    m2.metric("Profundidad Malla", f"{res.depth:.1f} m")
-    m3.metric("Ka Medio", f"{res.summary_stats['Ka_mean']:.3f}")
-    m4.metric("Hm0 Medio (AS)", f"{res.summary_stats['Hm0_AS_mean']:.2f} m")
-    m5.metric("Hm0 P99 / Máx (AS)", f"{res.summary_stats['Hm0_AS_p99']:.2f} / {res.summary_stats['Hm0_AS_max']:.2f} m")
-    m6.metric("Tiempo Cálculo", f"{elapsed_ms:.1f} ms", f"{res.summary_stats['n_records']:,} estados")
+    if is_forecast:
+        m1.metric("Sitio Costero", res.site_name)
+        m2.metric("Profundidad Malla", f"{res.depth:.1f} m")
+        m3.metric("Hm0 Actual (AS)", f"{res.timeseries['Hm0_AS'].iloc[0]:.2f} m", f"AP: {res.timeseries['Hm0_AP'].iloc[0]:.2f} m")
+        m4.metric("Hm0 Máx Previsto", f"{res.summary_stats['Hm0_AS_max']:.2f} m")
+        m5.metric("Tp Medio / Ka", f"{res.summary_stats['Tp_mean']:.1f} s", f"Ka={res.summary_stats['Ka_mean']:.2f}")
+        m6.metric("Horizonte Pronóstico", f"{res.summary_stats['n_records']} estados", f"{elapsed_ms:.1f} ms")
+    else:
+        m1.metric("Sitio Costero", res.site_name)
+        m2.metric("Profundidad Malla", f"{res.depth:.1f} m")
+        m3.metric("Ka Medio", f"{res.summary_stats['Ka_mean']:.3f}")
+        m4.metric("Hm0 Medio (AS)", f"{res.summary_stats['Hm0_AS_mean']:.2f} m")
+        m5.metric("Hm0 P99 / Máx (AS)", f"{res.summary_stats['Hm0_AS_p99']:.2f} / {res.summary_stats['Hm0_AS_max']:.2f} m")
+        m6.metric("Tiempo Cálculo", f"{elapsed_ms:.1f} ms", f"{res.summary_stats['n_records']:,} estados")
 
-    tab1, tab2, tab3, tab4 = st.tabs([
-        "🗺️ 1. Ubicación, Malla y Boyas AP",
-        "📐 2. Matrices de Transferencia (Ka y Dir)",
-        "🧭 3. Ponderación Multi-Boya (Distancia + Dirección)",
-        "📈 4. Serie de Hindcasting y Clima de Oleaje",
-    ])
+    tab1_label = "🗺️ 1. Ubicación, Malla y Boyas AP"
+    tab2_label = "📐 2. Matrices de Transferencia (Ka y Dir)"
+    tab3_label = "🧭 3. Ponderación Multi-Boya (Distancia + Dirección)"
+    tab4_label = "🔮 4. Serie de Pronóstico NOAA WW3" if is_forecast else "📈 4. Serie de Hindcasting y Clima de Oleaje"
+
+    tab1, tab2, tab3, tab4 = st.tabs([tab1_label, tab2_label, tab3_label, tab4_label])
 
     # ================= PESTAÑA 1: MAPA Y MALLA =================
     with tab1:
@@ -471,44 +594,69 @@ def main():
         })
         st.dataframe(df_buoys_table, use_container_width=True)
 
-    # ================= PESTAÑA 4: HINDCASTING Y CLIMA DE OLEAJE =================
+    # ================= PESTAÑA 4: HINDCASTING / FORECASTING =================
     with tab4:
-        st.subheader(
-            f"Serie de Tiempo de Hindcasting ({start_year}–{end_year}, cada {dt_hours} h, "
-            f"{len(res.timeseries):,} registros) en {res.site_name}"
+        ts = res.timeseries
+        t_start_fmt = ts["DateTime"].iloc[0].strftime("%d/%m/%Y %H:%M")
+        t_end_fmt = ts["DateTime"].iloc[-1].strftime("%d/%m/%Y %H:%M")
+
+        if is_forecast:
+            st.subheader(
+                f"Pronóstico Operacional NOAA WW3 ({t_start_fmt} – {t_end_fmt} UTC, "
+                f"cada {dt_hours} h, {len(ts)} pasos) en {res.site_name}"
+            )
+            src_str = engine.ap_db.metadata.get("source", "NOAA WW3 Global")
+            st.info(
+                f"📡 **Forzamiento Espectral Oceánico:** Modelo global WAVEWATCH III / GFS-Wave de la NOAA. "
+                f"Transformado a aguas someras mediante SWAN `chile_250k`. Fuente: `{src_str}`."
+            )
+        else:
+            st.subheader(
+                f"Serie de Tiempo de Hindcasting ({start_year}–{end_year}, cada {dt_hours} h, "
+                f"{len(ts):,} registros) en {res.site_name}"
+            )
+
+        # Graficar serie temporal usando WebGL (Scattergl)
+        sub_title_hm0 = (
+            "Hm0 Pronosticado: Borde NOAA Aguas Profundas (AP) vs Costa Aguas Someras (AS)"
+            if is_forecast
+            else "Altura Significativa Hm0: Aguas Profundas (AP) vs Aguas Someras (AS)"
+        )
+        sub_title_dir = (
+            "Dirección del Oleaje Pronosticada: Borde NOAA (AP) vs Costa (AS)"
+            if is_forecast
+            else "Dirección del Oleaje: Aguas Profundas (AP) vs Aguas Someras (AS)"
         )
 
-        ts = res.timeseries
-        # Graficar TODOS los puntos calculados usando WebGL (Scattergl) sin ningún submuestreo
         fig_ts = make_subplots(
             rows=3,
             cols=1,
             shared_xaxes=True,
             vertical_spacing=0.06,
             subplot_titles=(
-                "Altura Significativa Hm0: Aguas Profundas (AP) vs Aguas Someras (AS)",
-                "Periodo de Oleaje (Invariante AP = AS)",
-                "Dirección del Oleaje: Aguas Profundas (AP) vs Aguas Someras (AS)",
+                sub_title_hm0,
+                "Periodo de Oleaje Tp (Invariante AP = AS)",
+                sub_title_dir,
             ),
         )
         fig_ts.add_trace(
-            go.Scattergl(x=ts["DateTime"], y=ts["Hm0_AP"], name="Hm0 AP (m)", line=dict(color="#90caf9", width=1.2)),
+            go.Scattergl(x=ts["DateTime"], y=ts["Hm0_AP"], name="Hm0 AP (m)", line=dict(color="#90caf9", width=1.4)),
             row=1, col=1,
         )
         fig_ts.add_trace(
-            go.Scattergl(x=ts["DateTime"], y=ts["Hm0_AS"], name="Hm0 AS (m)", line=dict(color="#d32f2f", width=1.5)),
+            go.Scattergl(x=ts["DateTime"], y=ts["Hm0_AS"], name="Hm0 AS (m)", line=dict(color="#d32f2f", width=1.8)),
             row=1, col=1,
         )
         fig_ts.add_trace(
-            go.Scattergl(x=ts["DateTime"], y=ts["Tp_AS"], name="Tp (s)", line=dict(color="#388e3c", width=1.2)),
+            go.Scattergl(x=ts["DateTime"], y=ts["Tp_AS"], name="Tp (s)", line=dict(color="#388e3c", width=1.4)),
             row=2, col=1,
         )
         fig_ts.add_trace(
-            go.Scattergl(x=ts["DateTime"], y=ts["Dir_AP"], name="Dir AP (°)", mode="markers", marker=dict(size=2.5, color="#90caf9")),
+            go.Scattergl(x=ts["DateTime"], y=ts["Dir_AP"], name="Dir AP (°)", mode="markers", marker=dict(size=3.0, color="#90caf9")),
             row=3, col=1,
         )
         fig_ts.add_trace(
-            go.Scattergl(x=ts["DateTime"], y=ts["Dir_AS"], name="Dir AS (°)", mode="markers", marker=dict(size=2.5, color="#1976d2")),
+            go.Scattergl(x=ts["DateTime"], y=ts["Dir_AS"], name="Dir AS (°)", mode="markers", marker=dict(size=3.0, color="#1976d2")),
             row=3, col=1,
         )
         fig_ts.update_layout(height=620, template="plotly_white", margin=dict(l=20, r=20, t=40, b=20))
@@ -517,7 +665,7 @@ def main():
         col_r1, col_r2 = st.columns(2)
         with col_r1:
             st.plotly_chart(
-                build_wave_rose(ts, "Hm0_AP", "Dir_AP", "Rosa de Oleaje en Aguas Profundas (Borde Ponderado)"),
+                build_wave_rose(ts, "Hm0_AP", "Dir_AP", "Rosa de Oleaje en Aguas Profundas (Borde NOAA Ponderado)" if is_forecast else "Rosa de Oleaje en Aguas Profundas (Borde Ponderado)"),
                 use_container_width=True,
             )
         with col_r2:
@@ -526,14 +674,30 @@ def main():
                 use_container_width=True,
             )
 
+        # En modo pronóstico, mostrar tabla interactiva detallada
+        if is_forecast:
+            st.subheader(f"📋 Tabla Detallada de Pronóstico Horario en {res.site_name}")
+            df_disp = ts[["DateTime", "Hm0_AS", "Tp_AS", "Dir_AS", "Ka_eff", "Hm0_AP", "Dir_AP"]].copy()
+            df_disp.columns = ["Fecha / Hora (UTC)", "Hm0 Costa (m)", "Tp (s)", "Dir Costa (°)", "Ka Coef", "Hm0 Oceánico (m)", "Dir Oceánica (°)"]
+            st.dataframe(df_disp, use_container_width=True)
+
         # Descarga CSV
         csv_bytes = ts.to_csv(index=False).encode("utf-8")
+        if is_forecast:
+            btn_label = f"⬇️ Descargar Pronóstico NOAA en {res.site_name} (.CSV)"
+            f_name = f"forecast_AS_{res.site_name.replace(' ', '_')}_{ts['DateTime'].iloc[0].strftime('%Y%m%d')}_{ts['DateTime'].iloc[-1].strftime('%Y%m%d')}.csv"
+        else:
+            btn_label = f"⬇️ Descargar Serie de Hindcasting en {res.site_name} (.CSV)"
+            f_name = f"hindcast_AS_{res.site_name.replace(' ', '_')}_{start_year}_{end_year}.csv"
+
         st.download_button(
-            label=f"⬇️ Descargar Serie de Hindcasting en {res.site_name} (.CSV)",
+            label=btn_label,
             data=csv_bytes,
-            file_name=f"hindcast_AS_{res.site_name.replace(' ', '_')}_{start_year}_{end_year}.csv",
+            file_name=f_name,
             mime="text/csv",
         )
+
+    render_disclaimer()
 
 
 if __name__ == "__main__":

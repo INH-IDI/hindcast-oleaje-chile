@@ -1,6 +1,6 @@
-# Manual de Uso: Sistema de Hindcasting Rápido de Oleaje en Chile (`transfer_lib`)
+# Manual de Uso: Sistema de Hindcasting y Forecasting de Oleaje en Chile (`transfer_lib`)
 
-Este manual describe cómo utilizar la librería Python, la interfaz de línea de comandos (CLI) y la aplicación web interactiva para obtener series históricas de oleaje en aguas someras (AS) y funciones de transferencia en cualquier punto de la costa de Chile ($-17.7^\circ\text{S}$ a $-45.0^\circ\text{S}$).
+Este manual describe cómo utilizar la librería Python, la interfaz de línea de comandos (CLI) y la aplicación web interactiva para obtener series históricas (Hindcasting 1980–2015) y pronósticos operacionales en tiempo real (Forecasting NOAA WW3) de oleaje en aguas someras (AS) mediante funciones de transferencia SWAN en cualquier punto de la costa de Chile ($-17.7^\circ\text{S}$ a $-45.0^\circ\text{S}$).
 
 ---
 
@@ -14,7 +14,10 @@ Ruta raíz: `/home/model2/luis/oleaje_chile/superSimple/`
 | `datos_ap_uv/processed/hindcast_uv_14nodos.nc` | Base de datos oficial descargada de `oleaje.uv.cl` (**14 nodos cada $2^\circ$**, $1980\text{–}2015$). |
 | `trabajo_swan/matrices/matriz_transferencia_chile.nc` | Matriz de transferencia consolidada ($9\text{ periodos} \times 37\text{ direcciones} \times 255\,521\text{ nodos}$) generada con SWAN sobre `chile_250k`. |
 | `trabajo_swan/DataSet/` | Los 333 archivos `.mat` individuales de cada corrida estacionaria unitaria ($H_s = 1.0\,\text{m}$). |
-| `aplicacion_hindcast/transfer_lib/` | Librería Python principal (`WaveHindcastEngine`, `TransferMatrixDB`, `MultiBuoyWeighter`). |
+| `aplicacion_hindcast/transfer_lib/` | Librería Python principal (`WaveHindcastEngine`, `TransferMatrixDB`, `MultiBuoyWeighter`, `NOAAWaveForecastClient`). |
+| `aplicacion_hindcast/transfer_lib/forecast_engine.py` | Cliente de descarga y procesamiento de pronósticos NOAA WW3 (ERDDAP / NOMADS). |
+| `aplicacion_hindcast/assets/INH.png` | Logotipo oficial del Instituto Nacional de Hidráulica (Ministerio de Obras Públicas). |
+| `aplicacion_hindcast/forecast_cache/` | Directorio de caché local para series de pronóstico de aguas profundas (.npz). |
 | `aplicacion_hindcast/app.py` | Aplicación web interactiva en **Streamlit + Plotly**. |
 | `aplicacion_hindcast/cli.py` | Interfaz de línea de comandos (CLI) para consultas y exportación rápida. |
 
@@ -25,22 +28,47 @@ Ruta raíz: `/home/model2/luis/oleaje_chile/superSimple/`
 Para iniciar la aplicación interactiva en el navegador:
 
 ```bash
-/home/model2/.local/bin/streamlit run /home/model2/luis/oleaje_chile/superSimple/aplicacion_hindcast/app.py --server.port 8501
+streamlit run aplicacion_hindcast/app.py --server.port 8501
 ```
 
-### Flujo de trabajo en la interfaz:
-1. **Panel lateral izquierdo**:
-   - **Selección de punto**: Elige un sitio del catálogo (`Puerto` [25 puertos], `Nodo_Interes` [57 sitios] o `Caleta_DOP` [569 caletas de Chile]) o ingresa manualmente las coordenadas `(Longitud, Latitud)`.
-   - **Boyas de Aguas Profundas**: Elige entre la grilla de 28 boyas cada $1^\circ$ (`1deg`) o los 14 nodos originales UV (`uv14`), y selecciona el esquema de ponderación:
-     - `Distancia + Dirección AP (Recomendado)`: pondera cada boya según su cercanía y si se ubica aguas arriba de la dirección de procedencia de la ola ($\theta_{\text{AP}}$).
-     - `Inverso de la Distancia (IDW)`: pesos fijos sólo por distancia.
-     - `Boya única más cercana`: usa 100% la boya más próxima.
-   - **Parámetros y fechas**: Selecciona el periodo de referencia (`Tp`, `Tm`, `Tz`, `Te`), la dirección (`Dm`, `Dp`), la resolución temporal (**`1 hora (Interpolado horario)`** por defecto o `3 horas (Nativo UV)`) y el rango de años ($1980\text{–}2015$).
-2. **Pestañas de resultados**:
-   - **Pestaña 1 (Ubicación y Malla)**: Mapa regional con las boyas activas y sus pesos, junto con un zoom a los nodos y triángulos de la malla `chile_250k` donde se realiza la interpolación baricéntrica.
-   - **Pestaña 2 (Matrices de Transferencia)**: Mapas de calor de $K_a(T, \theta_{\text{AP}})$ y $\text{Dir}_{\text{AS}}(T, \theta_{\text{AP}})$, más una calculadora puntual en vivo.
-   - **Pestaña 3 (Ponderación Multi-Boya)**: Curvas $\omega_i(\theta_{\text{AP}})$ mostrando cómo varía el peso de las boyas Norte y Sur según la dirección del oleaje incidente.
-   - **Pestaña 4 (Hindcasting y Clima)**: Series de tiempo completas renderizadas con WebGL (`Scattergl`, sin submuestreo visual), rosas de oleaje y botón para descargar la serie completa en formato `.CSV`.
+### Elementos Principales de la Interfaz:
+
+- **Encabezado Institucional:** Contiene el logotipo oficial del **Instituto Nacional de Hidráulica (INH)** junto al título dinámico del sistema.
+- **Aviso Legal (Disclaimer):** Ubicado en el pie de página de la aplicación, advierte que los datos modelados (tanto hindcast como pronóstico) son aproximaciones numéricas bajo propio riesgo.
+
+### Flujo de trabajo en el Panel Lateral (Sidebar):
+
+1. **Modo de Operación**:
+   - `⏳ Hindcasting Histórico (1980 - 2015)`: Para estudios de clima marítimo, estadística de extremos y análisis de 36 años históricos con datos Atlas UV.
+   - `🔮 Forecasting Operacional NOAA WW3 (Tiempo Real)`: Para pronóstico operacional a 5–6 días forzado con el modelo global WAVEWATCH III de la NOAA.
+
+2. **1. Selección de punto costero**:
+   - **Catálogo**: Selección guiada entre `Puerto` (25 sitios), `Nodo_Interes` (57 sitios) o `Caleta_DOP` (569 caletas pesqueras de Chile).
+   - **Coordenadas**: Ingreso manual de `(Longitud, Latitud)` dentro de la malla `chile_250k`.
+
+3. **2. Boyas de Aguas Profundas (AP)**:
+   - Grilla: `Boyas cada 1° (-18° a -45°S, 28 boyas)` o `Nodos Atlas UV (14 nodos)`.
+   - Esquema de ponderación:
+     - `Distancia + Dirección AP (Recomendado)`: Pondera cada boya según su distancia y su alineación aguas arriba respecto a la dirección de oleaje incidente $\theta_{\text{AP}}$.
+     - `Inverso de la Distancia (IDW)`: Ponderación estática por distancia geodésica.
+     - `Boya única más cercana`: Selecciona únicamente la boya más próxima.
+
+4. **3. Parámetros y Fechas / Pronóstico**:
+   - **Si está en Modo Hindcast**: Selección de periodo de entrada (`Tp`, `Tm`, `Tz`, `Te`), dirección (`Dm`, `Dp`), paso temporal (`1 hora` o `3 horas`) y rango de años ($1980\text{–}2015$).
+   - **Si está en Modo Forecast**:
+     - **Servidor NOAA**: `NOAA ERDDAP (WW3 Global)` [Recomendado] o `NOAA NOMADS (GFS-Wave GRIB2)`.
+     - **Botón `🔄 Actualizar Pronóstico NOAA`**: Permite forzar una descarga en vivo de los servidores de NOAA cuando se requiera la corrida más reciente.
+     - **Horizonte de visualización**: `Todo el pronóstico disponible (~5 a 6 días)`, `Próximas 24 horas`, `48 horas`, `72 horas` o `5 días`.
+     - **Resolución**: `Cada 3 horas (Nativo WW3)` o `Cada 1 hora (Interpolado horario)`.
+
+### Pestañas de Resultados:
+
+- **Pestaña 1 (Ubicación, Malla y Boyas AP)**: Mapa regional interactivo con las boyas activas, vectores de ponderación y zoom a los elementos finitos de la malla `chile_250k`.
+- **Pestaña 2 (Matrices de Transferencia)**: Mapas de calor de $K_a(T, \theta_{\text{AP}})$ y $\text{Dir}_{\text{AS}}(T, \theta_{\text{AP}})$ locales con calculadora puntual en tiempo real.
+- **Pestaña 3 (Ponderación Multi-Boya)**: Curvas dinámicas $\omega_i(\theta_{\text{AP}})$ y tabla resumen con distancias, acimutes y pesos.
+- **Pestaña 4 (Serie de Tiempo y Rosas)**:
+  - En **Hindcasting**: Gráfico WebGL multivariable (1980–2015), rosas de oleaje AP/AS y botón de descarga `hindcast_AS_...csv`.
+  - En **Forecasting**: Gráfico WebGL del pronóstico horario/tri-horario comparando $H_{m0}$ oceánico vs costero, periodo $T_p$, direcciones $\text{Dir}$, tabla detallada y botón de descarga `forecast_AS_...csv`.
 
 ---
 
@@ -149,6 +177,42 @@ print("Coeficientes Ka :", out["Ka"])
 print("Hm0 en costa (m):", out["Hm0_AS"])
 print("Periodo AS (s)  :", out["T_AS"])
 print("Dir en costa (°):", out["Dir_AS"])
+```
+
+### Caso 3: Pronóstico Operacional de Oleaje en Tiempo Real (NOAA WW3)
+Para obtener el pronóstico de oleaje para los próximos 5–6 días en cualquier coordenada costera a partir de datos operacionales en vivo de la NOAA (descargados vía ERDDAP o NOMADS):
+
+```python
+import sys
+sys.path.insert(0, "/home/model2/luis/oleaje_chile/superSimple/aplicacion_hindcast")
+
+from transfer_lib import WaveHindcastEngine, WeightingConfig
+
+# 1. Inicializar motor en modo pronóstico ('forecast')
+# Descarga automáticamente o carga desde caché local el pronóstico global WW3
+engine = WaveHindcastEngine(mode="forecast", buoy_mode="1deg")
+
+# 2. Configurar ponderación multi-boya
+cfg = WeightingConfig(mode="dist_dir", max_buoys=4, dir_gamma=0.85, dir_power=2.0)
+
+# 3. Ejecutar pronóstico en el sitio costero de interés (ej. Valparaíso)
+res = engine.run_forecast(
+    lon=-71.6145,
+    lat=-33.0325,
+    site_name="Valparaiso",
+    weighting_config=cfg,
+    dt_hours=3, # o dt_hours=1 para interpolado horario
+)
+
+# 4. Explorar resultados
+df_pronostico = res.timeseries
+print(f"Pronóstico en {res.site_name} (Profundidad = {res.depth:.1f} m):")
+print(df_pronostico[["DateTime", "Hm0_AP", "Hm0_AS", "Tp_AS", "Dir_AS", "Ka_eff"]].head(10))
+
+print("\nEstadísticas del evento pronosticado:")
+print(f"- Hm0 Máx previsto: {res.summary_stats['Hm0_AS_max']:.2f} m")
+print(f"- Tp Medio previsto : {res.summary_stats['Tp_mean']:.1f} s")
+print(f"- Ka promedio       : {res.summary_stats['Ka_mean']:.3f}")
 ```
 
 ---

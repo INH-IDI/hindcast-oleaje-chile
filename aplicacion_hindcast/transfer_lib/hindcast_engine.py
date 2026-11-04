@@ -13,6 +13,7 @@ import netCDF4 as nc
 from .mesh_interpolator import TransferMatrixDB, LocalTransferFunction
 from .buoy_weighting import MultiBuoyWeighter, WeightingConfig
 from .catalog import load_coastal_sites
+from .forecast_engine import NOAAWaveForecastClient, DeepWaterForecastDB
 
 
 @dataclass
@@ -77,7 +78,8 @@ class DeepWaterHindcastDB:
 
 class WaveHindcastEngine:
     """
-    Motor integrado de Hindcasting costero mediante funciones de transferencia.
+    Motor integrado de simulación de oleaje costero (Hindcasting y Forecasting)
+    mediante matrices de transferencia SWAN y condiciones de borde en aguas profundas.
     """
 
     def __init__(
@@ -85,20 +87,36 @@ class WaveHindcastEngine:
         transfer_nc_path: Optional[Path] = None,
         ap_nc_path: Optional[Path] = None,
         buoy_mode: str = "1deg",
+        deepwater_db: Optional[Any] = None,
+        mode: str = "hindcast",
+        forecast_server: str = "erddap",
+        force_refresh_forecast: bool = False,
     ):
         base_dir = Path(__file__).resolve().parents[2]
         if transfer_nc_path is None:
             transfer_nc_path = base_dir / "trabajo_swan" / "matrices" / "matriz_transferencia_chile.nc"
-        if ap_nc_path is None:
-            if buoy_mode == "uv14":
-                ap_nc_path = base_dir / "datos_ap_uv" / "processed" / "hindcast_uv_14nodos.nc"
-            else:
-                ap_nc_path = base_dir / "datos_ap_uv" / "processed" / "hindcast_ap_1deg_chile.nc"
 
         self.transfer_db = TransferMatrixDB(transfer_nc_path)
-        self.ap_db = DeepWaterHindcastDB(ap_nc_path)
         self.buoy_mode = buoy_mode
+        self.mode = mode.lower()
         self.sites_df = load_coastal_sites()
+
+        if deepwater_db is not None:
+            self.ap_db = deepwater_db
+        elif self.mode == "forecast":
+            client = NOAAWaveForecastClient()
+            self.ap_db = client.get_forecast(
+                buoy_mode=buoy_mode,
+                server=forecast_server,
+                force_refresh=force_refresh_forecast,
+            )
+        else:
+            if ap_nc_path is None:
+                if buoy_mode == "uv14":
+                    ap_nc_path = base_dir / "datos_ap_uv" / "processed" / "hindcast_uv_14nodos.nc"
+                else:
+                    ap_nc_path = base_dir / "datos_ap_uv" / "processed" / "hindcast_ap_1deg_chile.nc"
+            self.ap_db = DeepWaterHindcastDB(ap_nc_path)
 
     def run_hindcast(
         self,
@@ -263,3 +281,7 @@ class WaveHindcastEngine:
             weights_mean=weights_mean,
             summary_stats=summary,
         )
+
+    run_simulation = run_hindcast
+    run_forecast = run_hindcast
+

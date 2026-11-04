@@ -213,4 +213,64 @@ def test_end_to_end_engine_on_chile_250k():
     assert len(res_1h.timeseries) > 87000  # 10 años a 1 hora (~87,646 registros)
 
 
+def test_forecast_deepwater_db_structure_and_persistence(tmp_path):
+    """Verifica la creación, indexado y persistencia en disco de DeepWaterForecastDB."""
+    from transfer_lib import DeepWaterForecastDB
+    import pandas as pd
+
+    timestamps = pd.date_range("2026-11-04 12:00:00", periods=16, freq="3h")
+    n_buoys = 4
+    ids = np.arange(1, n_buoys + 1, dtype=np.int32)
+    lats = np.array([-32.0, -33.0, -34.0, -35.0])
+    lons = np.array([-73.0, -73.0, -73.0, -73.0])
+    names = [f"Boya_{i}" for i in ids]
+
+    data = {
+        "Hm0": np.ones((n_buoys, len(timestamps)), dtype=np.float32) * 2.5,
+        "Tp": np.ones((n_buoys, len(timestamps)), dtype=np.float32) * 14.0,
+        "Tm": np.ones((n_buoys, len(timestamps)), dtype=np.float32) * 12.0,
+        "Tz": np.ones((n_buoys, len(timestamps)), dtype=np.float32) * 11.0,
+        "Dm": np.ones((n_buoys, len(timestamps)), dtype=np.float32) * 230.0,
+        "Dp": np.ones((n_buoys, len(timestamps)), dtype=np.float32) * 230.0,
+        "s": np.full((n_buoys, len(timestamps)), 10.0, dtype=np.float32),
+    }
+
+    db = DeepWaterForecastDB(ids, lats, lons, names, timestamps, data, metadata={"source": "test_ww3"})
+    assert len(db.timestamps) == 16
+    assert db.data["Hm0"].shape == (4, 16)
+
+    # Subconjunto temporal
+    s = db.subset_time_slice("2026-11-04 15:00:00", "2026-11-05 00:00:00")
+    assert len(db.timestamps[s]) == 4
+
+    # Guardar y recargar sin pickle
+    npz_path = tmp_path / "forecast_test.npz"
+    db.save_npz(npz_path)
+    loaded = DeepWaterForecastDB.from_npz(npz_path)
+    assert len(loaded.timestamps) == 16
+    assert np.allclose(loaded.data["Hm0"], db.data["Hm0"])
+    assert loaded.names == names
+
+
+def test_end_to_end_forecast_simulation_noaa_ww3():
+    """Verifica la simulación de pronóstico operacional NOAA WW3 sobre la costa chilena."""
+    from transfer_lib import WaveHindcastEngine, WeightingConfig
+
+    engine = WaveHindcastEngine(mode="forecast", buoy_mode="1deg")
+    res = engine.run_forecast(
+        lon=-71.6145,
+        lat=-33.0325,
+        site_name="Valparaiso_Forecast",
+        weighting_config=WeightingConfig(mode="dist_dir", max_buoys=4),
+    )
+
+    assert len(res.timeseries) >= 10
+    assert np.all(np.isfinite(res.timeseries["Hm0_AS"]))
+    assert np.all(res.timeseries["Hm0_AS"] >= 0.0)
+    assert np.all(res.timeseries["Tp_AS"] > 0.0)
+    assert np.all((res.timeseries["Dir_AS"] >= 0.0) & (res.timeseries["Dir_AS"] <= 360.0))
+    assert res.summary_stats["Hm0_AS_mean"] > 0.0
+
+
+
 
