@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any
 import numpy as np
 import pandas as pd
+import os
 import netCDF4 as nc
 
 from .mesh_interpolator import TransferMatrixDB, LocalTransferFunction
@@ -93,8 +94,16 @@ class WaveHindcastEngine:
         force_refresh_forecast: bool = False,
     ):
         base_dir = Path(__file__).resolve().parents[2]
+        local_data = Path(__file__).resolve().parents[1] / "data"
+
         if transfer_nc_path is None:
-            transfer_nc_path = base_dir / "trabajo_swan" / "matrices" / "matriz_transferencia_chile.nc"
+            env_path = os.getenv("OLEAJE_TRANSFER_NC")
+            if env_path and Path(env_path).exists():
+                transfer_nc_path = Path(env_path)
+            elif (local_data / "matriz_transferencia_chile.nc").exists():
+                transfer_nc_path = local_data / "matriz_transferencia_chile.nc"
+            else:
+                transfer_nc_path = base_dir / "trabajo_swan" / "matrices" / "matriz_transferencia_chile.nc"
 
         self.transfer_db = TransferMatrixDB(transfer_nc_path)
         self.buoy_mode = buoy_mode
@@ -112,7 +121,13 @@ class WaveHindcastEngine:
             )
         else:
             if ap_nc_path is None:
-                if buoy_mode == "uv14":
+                env_ap = os.getenv("OLEAJE_AP_NC")
+                nc_name = "hindcast_uv_14nodos.nc" if buoy_mode == "uv14" else "hindcast_ap_1deg_chile.nc"
+                if env_ap and Path(env_ap).exists():
+                    ap_nc_path = Path(env_ap)
+                elif (local_data / nc_name).exists():
+                    ap_nc_path = local_data / nc_name
+                elif buoy_mode == "uv14":
                     ap_nc_path = base_dir / "datos_ap_uv" / "processed" / "hindcast_uv_14nodos.nc"
                 else:
                     ap_nc_path = base_dir / "datos_ap_uv" / "processed" / "hindcast_ap_1deg_chile.nc"

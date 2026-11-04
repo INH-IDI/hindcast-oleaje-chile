@@ -4,11 +4,13 @@ y boyas de aguas profundas (14 nodos Atlas UV y 28 boyas cada 1°).
 """
 
 import re
+import os
 from pathlib import Path
 from typing import List, Dict, Optional
 import pandas as pd
 
 SUPER_SIMPLE_DIR = Path(__file__).resolve().parents[2]
+LOCAL_DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 MODELO_PRONOSTICO_DIR = SUPER_SIMPLE_DIR / "modelo_pronostico"
 DATOS_AP_DIR = SUPER_SIMPLE_DIR / "datos_ap_uv"
 
@@ -21,6 +23,11 @@ def load_coastal_sites() -> pd.DataFrame:
     - Caletas pesqueras y obras costeras DOP (569 sitios)
     Retorna un DataFrame con columnas: ['name', 'category', 'lon', 'lat'].
     """
+    # 0. Si existe el CSV pre-empaquetado en local, cargarlo directamente
+    csv_local = LOCAL_DATA_DIR / "sitios_costeros.csv"
+    if csv_local.exists():
+        return pd.read_csv(csv_local)
+
     records: List[Dict] = []
 
     # 1. Leer puertos y puntos de interés desde swan_INPUT.swn
@@ -83,6 +90,11 @@ def load_buoy_catalog(mode: str = "1deg", datos_ap_dir: Optional[Path] = None) -
       - '1deg': 28 boyas cada 1° de latitud (-18° a -45°S)
       - 'uv14': 14 nodos originales del Atlas de Oleaje UV (-19° a -45°S cada 2°)
     """
+    # 0. Verificar si existen localmente en data/
+    local_name = "catalogo_nodos_uv.csv" if mode == "uv14" else "catalogo_boyas_1deg.csv"
+    if (LOCAL_DATA_DIR / local_name).exists():
+        return pd.read_csv(LOCAL_DATA_DIR / local_name)
+
     base = Path(datos_ap_dir) if datos_ap_dir else DATOS_AP_DIR
     if mode == "uv14":
         csv_path = base / "catalogo_nodos_uv.csv"
