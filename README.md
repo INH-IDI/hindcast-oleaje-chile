@@ -1,6 +1,6 @@
 # Modelación Rápida de Oleaje en Chile: Hindcasting & Forecasting (`superSimple`)
 
-Sistema integrado de **Hindcasting histórico** (1980–2015) y **Forecasting operacional** (pronóstico en tiempo real a 5–6 días) de oleaje en aguas someras (AS) para la costa de Chile ($-17.7^\circ\text{S}$ a $-45.0^\circ\text{S}$), basado en **Funciones de Transferencia Espectrales** ($K_a(X, Y, f, \theta_{\text{AP}})$ y $\theta_{\text{AS}}(X, Y, f, \theta_{\text{AP}})$) precalculadas con el modelo espectral **SWAN** sobre la malla no estructurada `chile_250k` ($255\,521$ nodos y $490\,875$ elementos triangulares).
+Sistema integrado de **Hindcasting histórico** (1980–2015) y **Forecasting operacional** (pronóstico en tiempo real a 5–6 días) de oleaje en aguas someras (AS) para la costa de Chile ($-17.7^\circ\text{S}$ a $-45.0^\circ\text{S}$), basado en **Funciones de Transferencia Espectrales** ($K_a$ y Dirección) precalculadas con el modelo espectral **SWAN** sobre la malla no estructurada `chile_250k` ($255\,521$ nodos y $490\,875$ elementos triangulares).
 
 El sistema permite alternar en una misma interfaz gráfica y API entre:
 1. **Hindcasting Histórico (1980–2015):** Forzado con la base de datos de Aguas Profundas (AP) de la Universidad de Valparaíso (`oleaje.uv.cl`) sobre una red de **28 boyas virtuales cada $1^\circ$ de latitud** (o 14 nodos Atlas UV).
@@ -11,16 +11,16 @@ El sistema permite alternar en una misma interfaz gráfica y API entre:
 ## Características Principales
 
 1. **Matriz de Transferencia SWAN (`trabajo_swan/`)**:
-   - **333 casos estacionarios de oleaje unitario** ($H_{s,0} = 1.0\,\text{m}$), combinando **9 periodos** ($T \in \{6, 8, 10, 12, 14, 16, 18, 20, 22\}\,\text{s}$, $\Delta T = 2\,\text{s}$) y **37 direcciones** ($\theta_{\text{AP}} \in [180^\circ, 360^\circ]$, $\Delta\theta = 5^\circ$, convención náutica).
+   - **333 casos estacionarios de oleaje unitario** ($H_{s,0} = 1.0\,\text{m}$), combinando **9 periodos** ($T \in \{6, 8, 10, 12, 14, 16, 18, 20, 22\}\,\text{s}$, $\Delta T = 2\,\text{s}$) y **37 direcciones** ($\theta \in [180^\circ, 360^\circ]$, $\Delta\theta = 5^\circ$, convención náutica).
    - Almacenamiento consolidado en formato NetCDF4 comprimido (`trabajo_swan/matrices/matriz_transferencia_chile.nc`).
 2. **Forecasting Operacional en Tiempo Real NOAA WW3 (`transfer_lib/forecast_engine.py`)**:
    - Descarga automatizada de parámetros espectrales de aguas profundas ($H_{m0}$, $T_p$, $\text{Dir}$) desde servidores **NOAA ERDDAP** (`ww3_global`) y **NOAA NOMADS** (`filter_gfswave.pl`).
    - Mapeo y extracción en todos los nodos de aguas profundas chilenos ($-18^\circ\text{S}$ a $-45^\circ\text{S}$) y caché local inteligente con botón de actualización en vivo (`🔄 Actualizar Pronóstico NOAA`).
 3. **Ponderación Multi-Boya por Distancia y Dirección de Aguas Profundas (`transfer_lib/buoy_weighting.py`)**:
-   - Combina múltiples boyas de aguas profundas vecinas asignando pesos dinámicos $\omega_i(t)$ en función de la **distancia geodésica** al punto de interés y la **alineación direccional aguas arriba** respecto a la dirección de procedencia del oleaje $\theta_{\text{AP}}(t)$ (priorizando la boya Norte cuando el oleaje proviene del Norte y la boya Sur cuando proviene del Sur).
+   - Combina múltiples boyas de aguas profundas vecinas asignando pesos dinámicos $\omega_i(t)$ en función de la **distancia geodésica** al punto de interés y la **alineación direccional aguas arriba** respecto a la dirección de procedencia del oleaje $\theta(t)$ (priorizando la boya Norte cuando el oleaje proviene del Norte y la boya Sur cuando proviene del Sur).
 4. **Interpolación Espacial Baricéntrica y Espectral 2D (`transfer_lib/mesh_interpolator.py`)**:
    - Interpolación espacial baricéntrica sobre la triangulación `chile_250k` para cualquier coordenada $(X, Y)$ en la costa de Chile.
-   - Interpolación espectral bilineal en $(f = 1/T, \theta_{\text{AP}})$ para $K_a$ y vectorial circular en $(\cos\theta_{\text{AS}}, \sin\theta_{\text{AS}})$ para la dirección en aguas someras.
+   - Interpolación espectral bilineal en $(f = 1/T, \theta)$ para $K_a$ y vectorial circular para la dirección en aguas someras.
 5. **Interfaz Interactiva WebGL, Identidad INH y Descarga CSV (`aplicacion_hindcast/app.py`)**:
    - Aplicación en Streamlit + Plotly WebGL (`Scattergl`) con selector de modo (Hindcasting vs Forecasting), catálogo de 25 puertos, 57 nodos de interés y 569 caletas DOP.
    - Incluye el **logo oficial del Instituto Nacional de Hidráulica (INH)** y **aviso legal (disclaimer)** de uso de datos numéricos.

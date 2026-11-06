@@ -64,8 +64,8 @@ streamlit run aplicacion_hindcast/app.py --server.port 8501
 ### Pestañas de Resultados:
 
 - **Pestaña 1 (Ubicación, Malla y Boyas AP)**: Mapa regional interactivo con las boyas activas, vectores de ponderación y zoom a los elementos finitos de la malla `chile_250k`.
-- **Pestaña 2 (Matrices de Transferencia)**: Mapas de calor de $K_a(T, \theta_{\text{AP}})$ y $\text{Dir}_{\text{AS}}(T, \theta_{\text{AP}})$ locales con calculadora puntual en tiempo real.
-- **Pestaña 3 (Ponderación Multi-Boya)**: Curvas dinámicas $\omega_i(\theta_{\text{AP}})$ y tabla resumen con distancias, acimutes y pesos.
+- **Pestaña 2 (Matrices de Transferencia)**: Mapas de calor de $K_a(T, \theta)$ y $\text{Dir}(T, \theta)$ locales con calculadora puntual en tiempo real.
+- **Pestaña 3 (Ponderación Multi-Boya)**: Curvas dinámicas $\omega_i(\theta)$ y tabla resumen con distancias, acimutes y pesos.
 - **Pestaña 4 (Serie de Tiempo y Rosas)**:
   - En **Hindcasting**: Gráfico WebGL multivariable (1980–2015), rosas de oleaje AP/AS y botón de descarga `hindcast_AS_...csv`.
   - En **Forecasting**: Gráfico WebGL del pronóstico horario/tri-horario comparando $H_{m0}$ oceánico vs costero, periodo $T_p$, direcciones $\text{Dir}$, tabla detallada y botón de descarga `forecast_AS_...csv`.
