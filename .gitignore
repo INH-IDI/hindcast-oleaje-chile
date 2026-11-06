@@ -24,6 +24,7 @@ aplicacion_hindcast/data/*.nc
 empaquetado_notebook/data/*.nc
 empaquetado_notebook/.venv/
 .venv/
+*.zip
 
 # Redundant mesh formats and binaries not needed by transfer_lib or SWAN unstructured ADCIRC/Triangle input
 modelo_pronostico/malla/chile_250k.14

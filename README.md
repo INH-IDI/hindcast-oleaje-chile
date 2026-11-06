@@ -61,11 +61,57 @@ superSimple/
 
 ---
 
-## 💻 Instalación y Ejecución Paso a Paso (Windows y WSL Linux)
+## 💻 Instalación y Ejecución Paso a Paso (Linux Nativo, Windows y WSL)
 
-El sistema puede ejecutarse tanto en un servidor Linux como en cualquier computador personal o portátil (**notebook**) con **Windows nativo** o **WSL Linux (Ubuntu)**.
+El sistema puede ejecutarse tanto en un computador o servidor con **Linux Nativo** (Ubuntu, Debian, Fedora, Arch), como en un **notebook con Windows nativo** o mediante **WSL (Windows Subsystem for Linux)**.
 
-### Opción 1: En Windows Nativo (Sin WSL — Con lanzador de 1 clic)
+---
+
+### Opción 1: En Linux Nativo (Desktop / Servidores: Ubuntu, Debian, Fedora, Arch)
+
+Para usuarios que utilizan Linux como sistema operativo en su notebook, estación de trabajo o servidor:
+
+1. **Paso 1 — Instalar dependencias del sistema:**
+   - **Ubuntu / Debian / Linux Mint:**
+     ```bash
+     sudo apt update && sudo apt install -y python3 python3-venv python3-pip git
+     ```
+   - **Fedora / RHEL / CentOS:**
+     ```bash
+     sudo dnf install -y python3 python3-pip git
+     ```
+   - **Arch Linux / Manjaro:**
+     ```bash
+     sudo pacman -S python python-pip git
+     ```
+
+2. **Paso 2 — Descargar el repositorio:**
+   ```bash
+   git clone https://github.com/INH-IDI/hindcast-oleaje-chile.git
+   cd hindcast-oleaje-chile
+   ```
+
+3. **Paso 3 — Iniciar la aplicación:**
+   - **Con lanzador automático (1 comando):**
+     ```bash
+     bash empaquetado_notebook/iniciar_linux.sh
+     ```
+     *El script creará automáticamente el entorno virtual aislado (`.venv`), instalará las librerías con `pip` y levantará Streamlit.*
+   - **O manualmente paso a paso:**
+     ```bash
+     python3 -m venv .venv
+     source .venv/bin/activate
+     pip install -r empaquetado_notebook/requirements.txt
+     streamlit run aplicacion_hindcast/app.py --server.port 8501
+     ```
+
+4. **Paso 4 — Bases de datos:**
+   - **Modo Forecasting (Pronóstico en tiempo real):** Funciona de inmediato sin descargar archivos adicionales; las condiciones oceánicas se bajan en segundos desde los servidores de la NOAA.
+   - **Modo Hindcasting histórico:** Para calcular sobre los 36 años históricos, descargue las bases con `python3 empaquetado_notebook/descargar_datos.py` o coloque `matriz_transferencia_chile.nc` dentro de `data/` o `trabajo_swan/matrices/`.
+
+---
+
+### Opción 2: En Windows Nativo (Sin WSL — Con lanzador de 1 clic)
 
 1. **Paso 1 — Instalar Python en Windows:**
    - Descargue e instale Python 3.10, 3.11 o 3.12 desde [python.org/downloads](https://www.python.org/downloads/).
@@ -87,12 +133,12 @@ El sistema puede ejecutarse tanto en un servidor Linux como en cualquier computa
    - El script creará automáticamente un entorno virtual aislado (`.venv`), instalará las librerías necesarias con `pip` y abrirá automáticamente su navegador web en `http://localhost:8501`.
 
 4. **Paso 4 — Bases de datos:**
-   - **Modo Forecasting (Pronóstico en tiempo real):** Funciona de inmediato sin descargar archivos adicionales; las condiciones oceánicas se bajan en segundos desde los servidores de NOAA.
-   - **Modo Hindcasting histórico:** Para calcular sobre los 36 años históricos, ejecute `python descargar_datos.py` o copie el archivo `matriz_transferencia_chile.nc` dentro de la carpeta `data/`.
+   - **Modo Forecasting (Pronóstico en tiempo real):** Funciona de inmediato sin descargar archivos adicionales.
+   - **Modo Hindcasting histórico:** Ejecute `python descargar_datos.py` o copie el archivo `matriz_transferencia_chile.nc` dentro de la carpeta `data/`.
 
 ---
 
-### Opción 2: En WSL Linux (Windows Subsystem for Linux / Ubuntu)
+### Opción 3: En Windows con WSL (Windows Subsystem for Linux / Ubuntu)
 
 1. **Paso 1 — Preparar el entorno en WSL:**
    - Abra su terminal de WSL (Ubuntu/Debian) y asegúrese de contar con Python y herramientas básicas:
@@ -110,19 +156,9 @@ El sistema puede ejecutarse tanto en un servidor Linux como en cualquier computa
    ```bash
    bash empaquetado_notebook/iniciar_wsl_linux.sh
    ```
-   *(O si prefiere hacerlo manualmente paso a paso):*
-   ```bash
-   python3 -m venv .venv
-   source .venv/bin/activate
-   pip install -r empaquetado_notebook/requirements.txt
-   streamlit run aplicacion_hindcast/app.py
-   ```
 
 4. **Paso 4 — Abrir en el navegador:**
-   - Ingrese desde su navegador en Windows o WSL a:
-     ```text
-     http://localhost:8501
-     ```
+   - Ingrese desde su navegador en Windows o WSL a: `http://localhost:8501`
 
 ---
 

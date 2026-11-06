@@ -57,9 +57,17 @@ Para generar el paquete portátil distribuible:
 
 ---
 
-## 4. Instrucción de Instalación y Ejecución en el Notebook
+## 4. Instrucción de Instalación y Ejecución en el Notebook o PC
 
-Una vez descomprimido el paquete en el notebook:
+Una vez descomprimido el paquete en el notebook o computador de destino:
+
+### En Linux Nativo (Ubuntu, Debian, Fedora, Arch):
+1. Asegúrese de tener Python 3 y venv (`sudo apt install python3-venv`, `sudo dnf install python3`, etc.).
+2. En la terminal dentro de la carpeta del paquete, ejecute:
+   ```bash
+   bash iniciar_linux.sh
+   ```
+3. El script creará `.venv`, instalará dependencias, verificará datos y levantará Streamlit en `http://localhost:8501`.
 
 ### En Windows Nativo (Sin WSL):
 1. Asegúrese de tener instalado Python 3.10 o superior (con la opción *"Add python.exe to PATH"* marcada al instalar).
@@ -69,7 +77,7 @@ Una vez descomprimido el paquete en el notebook:
    ```
 3. El script creará automáticamente el entorno virtual `.venv`, instalará las dependencias necesarias de `requirements.txt`, verificará las bases de datos y abrirá el navegador en `http://localhost:8501`.
 
-### En WSL Linux (Ubuntu / Debian):
+### En WSL Linux (Ubuntu / Debian en Windows):
 1. Abra la terminal en la carpeta del paquete y ejecute:
    ```bash
    bash iniciar_wsl_linux.sh

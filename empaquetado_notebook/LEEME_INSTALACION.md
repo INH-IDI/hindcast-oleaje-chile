@@ -1,7 +1,7 @@
-# Guía de Instalación y Uso en Notebook (Windows y WSL Linux)
+# Guía de Instalación y Uso en Notebook y PC (Linux Nativo, Windows y WSL)
 ## Sistema de Hindcasting y Forecasting de Oleaje en Chile — INH
 
-Este paquete permite ejecutar la aplicación gráfica completa en su computador portátil (**notebook**), ya sea directamente en **Windows (nativo)** o mediante **WSL (Windows Subsystem for Linux / Ubuntu)**.
+Este paquete permite ejecutar la aplicación gráfica completa en su computador portátil (**notebook**) o de escritorio, ya sea en **Linux Nativo** (Ubuntu, Debian, Fedora, Arch), **Windows (nativo)** o mediante **WSL (Windows Subsystem for Linux)**.
 
 ---
 
@@ -21,13 +21,45 @@ empaquetado_notebook/
 ├── forecast_cache/             # Almacenamiento local de pronósticos NOAA recientes
 ├── requirements.txt            # Dependencias Python optimizadas para Windows y Linux
 ├── descargar_datos.py          # Script de verificación y descarga automática de NetCDF
+├── iniciar_linux.sh            # Lanzador para Linux Nativo y WSL (Ubuntu, Fedora, Arch)
 ├── iniciar_windows.bat         # Lanzador de 1 clic para Windows nativo
-└── iniciar_wsl_linux.sh        # Lanzador de 1 clic para WSL Linux (Ubuntu)
+└── iniciar_wsl_linux.sh        # Lanzador específico para WSL Linux (Ubuntu)
 ```
 
 ---
 
-## Opción A: Ejecutar en Windows Nativo (Sin WSL)
+## Opción A: Ejecutar en Linux Nativo (Desktop / Servidores: Ubuntu, Debian, Fedora, Arch)
+
+### Requisitos previos:
+Instalar Python y gestor de paquetes según su distribución:
+- **Ubuntu / Debian / Linux Mint:**
+  ```bash
+  sudo apt update && sudo apt install -y python3 python3-venv python3-pip
+  ```
+- **Fedora / RHEL / CentOS:**
+  ```bash
+  sudo dnf install -y python3 python3-pip
+  ```
+- **Arch Linux / Manjaro:**
+  ```bash
+  sudo pacman -S python python-pip
+  ```
+
+### Pasos de inicio:
+1. Abra su terminal en esta carpeta y ejecute:
+   ```bash
+   bash iniciar_linux.sh
+   ```
+2. El script automáticamente:
+   - Creará un entorno virtual aislado (`.venv`).
+   - Instalará las dependencias necesarias (`streamlit`, `plotly`, `netCDF4`, `pandas`, `scipy`, etc.).
+   - Verificará los archivos de datos en `data/`.
+   - Iniciará el servidor Streamlit en `http://localhost:8501`.
+3. Abra su navegador web en `http://localhost:8501`.
+
+---
+
+## Opción B: Ejecutar en Windows Nativo (Sin WSL)
 
 ### Requisitos previos:
 - Tener instalado **Python 3.10, 3.11 o 3.12** en Windows ([python.org](https://www.python.org/downloads/)).
@@ -38,17 +70,11 @@ empaquetado_notebook/
    ```cmd
    iniciar_windows.bat
    ```
-2. El script automáticamente:
-   - Creará un entorno virtual aislado (`.venv`).
-   - Instalará las dependencias necesarias (`streamlit`, `plotly`, `netCDF4`, `pandas`, `scipy`, etc.).
-   - Verificará los archivos de datos en `data/` (o los descargará si faltan).
-   - Abrirá su navegador web predeterminado en `http://localhost:8501`.
+2. El script automáticamente creará el entorno virtual `.venv`, instalará dependencias, verificará datos y abrirá su navegador web en `http://localhost:8501`.
 
 ---
 
-## Opción B: Ejecutar en WSL Linux (Windows Subsystem for Linux)
-
-Si prefiere utilizar su terminal de Ubuntu/Debian en WSL:
+## Opción C: Ejecutar en Windows con WSL (Windows Subsystem for Linux / Ubuntu)
 
 ### Requisitos previos:
 En su terminal de WSL, asegúrese de tener Python y venv:
@@ -58,6 +84,10 @@ sudo apt update && sudo apt install -y python3 python3-venv python3-pip
 
 ### Pasos de inicio:
 1. Abra la terminal en esta carpeta y ejecute:
+   ```bash
+   bash iniciar_wsl_linux.sh
+   ```
+2. Abra su navegador en Windows o WSL e ingrese a `http://localhost:8501`.
    ```bash
    bash iniciar_wsl_linux.sh
    ```
