@@ -61,6 +61,71 @@ superSimple/
 
 ---
 
+## 💻 Instalación y Ejecución Paso a Paso (Windows y WSL Linux)
+
+El sistema puede ejecutarse tanto en un servidor Linux como en cualquier computador personal o portátil (**notebook**) con **Windows nativo** o **WSL Linux (Ubuntu)**.
+
+### Opción 1: En Windows Nativo (Sin WSL — Con lanzador de 1 clic)
+
+1. **Paso 1 — Instalar Python en Windows:**
+   - Descargue e instale Python 3.10, 3.11 o 3.12 desde [python.org/downloads](https://www.python.org/downloads/).
+   - ⚠️ **MUY IMPORTANTE:** En la primera pantalla del instalador, marque la casilla que dice **"Add python.exe to PATH"**.
+
+2. **Paso 2 — Descargar el paquete:**
+   - **Vía ZIP (Recomendado para notebooks):** Descargue el archivo [**`oleaje_chile_notebook.zip`**](https://github.com/INH-IDI/hindcast-oleaje-chile/releases/latest/download/oleaje_chile_notebook.zip) desde la sección de *Releases* y descomprímalo en cualquier carpeta (ej. en su Escritorio o Documentos).
+   - **Vía Git:** Si tiene Git instalado, ejecute en PowerShell o CMD:
+     ```cmd
+     git clone https://github.com/INH-IDI/hindcast-oleaje-chile.git
+     cd hindcast-oleaje-chile\empaquetado_notebook
+     ```
+
+3. **Paso 3 — Iniciar la aplicación:**
+   - Haga doble clic sobre el archivo:
+     ```cmd
+     iniciar_windows.bat
+     ```
+   - El script creará automáticamente un entorno virtual aislado (`.venv`), instalará las librerías necesarias con `pip` y abrirá automáticamente su navegador web en `http://localhost:8501`.
+
+4. **Paso 4 — Bases de datos:**
+   - **Modo Forecasting (Pronóstico en tiempo real):** Funciona de inmediato sin descargar archivos adicionales; las condiciones oceánicas se bajan en segundos desde los servidores de NOAA.
+   - **Modo Hindcasting histórico:** Para calcular sobre los 36 años históricos, ejecute `python descargar_datos.py` o copie el archivo `matriz_transferencia_chile.nc` dentro de la carpeta `data/`.
+
+---
+
+### Opción 2: En WSL Linux (Windows Subsystem for Linux / Ubuntu)
+
+1. **Paso 1 — Preparar el entorno en WSL:**
+   - Abra su terminal de WSL (Ubuntu/Debian) y asegúrese de contar con Python y herramientas básicas:
+     ```bash
+     sudo apt update && sudo apt install -y python3 python3-venv python3-pip git
+     ```
+
+2. **Paso 2 — Clonar el repositorio:**
+   ```bash
+   git clone https://github.com/INH-IDI/hindcast-oleaje-chile.git
+   cd hindcast-oleaje-chile
+   ```
+
+3. **Paso 3 — Iniciar la aplicación con el script automático:**
+   ```bash
+   bash empaquetado_notebook/iniciar_wsl_linux.sh
+   ```
+   *(O si prefiere hacerlo manualmente paso a paso):*
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate
+   pip install -r empaquetado_notebook/requirements.txt
+   streamlit run aplicacion_hindcast/app.py
+   ```
+
+4. **Paso 4 — Abrir en el navegador:**
+   - Ingrese desde su navegador en Windows o WSL a:
+     ```text
+     http://localhost:8501
+     ```
+
+---
+
 ## Descarga de Bases de Datos Precalculadas (GitHub Releases)
 
 Los archivos binarios NetCDF4 de gran tamaño se encuentran publicados en la sección **[Releases](../../releases)** de este repositorio y pueden descargarse en sus carpetas correspondientes con `gh`:
