@@ -5,7 +5,7 @@ datos de Aguas Profundas (AP) y Matrices de Transferencia SWAN (chile_250k).
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Callable
 import numpy as np
 import pandas as pd
 import os
@@ -15,6 +15,7 @@ from .mesh_interpolator import TransferMatrixDB, LocalTransferFunction
 from .buoy_weighting import MultiBuoyWeighter, WeightingConfig
 from .catalog import load_coastal_sites
 from .forecast_engine import NOAAWaveForecastClient, DeepWaterForecastDB
+from .era5_engine import ERA5WaveClient, DeepWaterERA5DB
 
 
 @dataclass
@@ -92,20 +93,33 @@ class WaveHindcastEngine:
         mode: str = "hindcast",
         forecast_server: str = "erddap",
         force_refresh_forecast: bool = False,
+        transfer_db: Optional[TransferMatrixDB] = None,
+        era5_start_date: Optional[str] = None,
+        era5_end_date: Optional[str] = None,
+        era5_step_hours: int = 1,
+        era5_cds_url: Optional[str] = None,
+        era5_cds_key: Optional[str] = None,
+        era5_nc_path: Optional[Path] = None,
+        era5_cache_dir: Optional[Path] = None,
+        force_refresh_era5: bool = False,
+        era5_progress_callback: Optional[Callable[[str, float], None]] = None,
     ):
         base_dir = Path(__file__).resolve().parents[2]
         local_data = Path(__file__).resolve().parents[1] / "data"
 
-        if transfer_nc_path is None:
-            env_path = os.getenv("OLEAJE_TRANSFER_NC")
-            if env_path and Path(env_path).exists():
-                transfer_nc_path = Path(env_path)
-            elif (local_data / "matriz_transferencia_chile.nc").exists():
-                transfer_nc_path = local_data / "matriz_transferencia_chile.nc"
-            else:
-                transfer_nc_path = base_dir / "trabajo_swan" / "matrices" / "matriz_transferencia_chile.nc"
+        if transfer_db is not None:
+            self.transfer_db = transfer_db
+        else:
+            if transfer_nc_path is None:
+                env_path = os.getenv("OLEAJE_TRANSFER_NC")
+                if env_path and Path(env_path).exists():
+                    transfer_nc_path = Path(env_path)
+                elif (local_data / "matriz_transferencia_chile.nc").exists():
+                    transfer_nc_path = local_data / "matriz_transferencia_chile.nc"
+                else:
+                    transfer_nc_path = base_dir / "trabajo_swan" / "matrices" / "matriz_transferencia_chile.nc"
+            self.transfer_db = TransferMatrixDB(transfer_nc_path)
 
-        self.transfer_db = TransferMatrixDB(transfer_nc_path)
         self.buoy_mode = buoy_mode
         self.mode = mode.lower()
         self.sites_df = load_coastal_sites()
@@ -119,6 +133,31 @@ class WaveHindcastEngine:
                 server=forecast_server,
                 force_refresh=force_refresh_forecast,
             )
+        elif self.mode == "era5":
+            client = ERA5WaveClient(
+                cds_url=era5_cds_url,
+                cds_key=era5_cds_key,
+                cache_dir=era5_cache_dir,
+            )
+            if era5_nc_path is not None:
+                self.ap_db = client.load_from_local_netcdf(
+                    nc_path=Path(era5_nc_path),
+                    buoy_mode=buoy_mode,
+                )
+            else:
+                if not era5_start_date or not era5_end_date:
+                    raise ValueError(
+                        "En modo 'era5' debe indicar 'era5_start_date' y 'era5_end_date' "
+                        "(o entregar 'era5_nc_path' / 'deepwater_db')."
+                    )
+                self.ap_db = client.get_era5_data(
+                    buoy_mode=buoy_mode,
+                    start_date=era5_start_date,
+                    end_date=era5_end_date,
+                    step_hours=era5_step_hours,
+                    force_refresh=force_refresh_era5,
+                    progress_callback=era5_progress_callback,
+                )
         else:
             if ap_nc_path is None:
                 env_ap = os.getenv("OLEAJE_AP_NC")
@@ -168,44 +207,71 @@ class WaveHindcastEngine:
         t_slice = self.ap_db.subset_time_slice(start_date, end_date)
         times = self.ap_db.timestamps[t_slice]
         n_t = len(times)
+        if n_t == 0:
+            avail_msg = (
+                f"{self.ap_db.timestamps[0]} .. {self.ap_db.timestamps[-1]}"
+                if len(self.ap_db.timestamps) > 0
+                else "vacío"
+            )
+            raise ValueError(
+                f"No hay registros en el rango solicitado ({start_date} .. {end_date}). "
+                f"Rango disponible en la base AP: {avail_msg}."
+            )
 
         # 3. Seleccionar las K boyas activas y extraer sus series en AP
         info = weighter.select_active_buoys(lon, lat)
         sel_idx = info["indices"]
         k = len(sel_idx)
 
-        hm0_ap_k = self.ap_db.data["Hm0"][sel_idx, t_slice]       # (K, N_t)
-        per_ap_k = self.ap_db.data[period_var][sel_idx, t_slice]  # (K, N_t)
-        dir_ap_k = self.ap_db.data[dir_var][sel_idx, t_slice]     # (K, N_t)
-        tp_ap_k = self.ap_db.data["Tp"][sel_idx, t_slice]
-        tm_ap_k = self.ap_db.data["Tm"][sel_idx, t_slice]
-        tz_ap_k = self.ap_db.data["Tz"][sel_idx, t_slice]
+        def _get_var_slice(v_name: str) -> np.ndarray:
+            if v_name in self.ap_db.data:
+                return self.ap_db.data[v_name][sel_idx, t_slice]
+            tp_arr = self.ap_db.data["Tp"][sel_idx, t_slice]
+            if v_name == "Te":
+                return (tp_arr * 0.90).astype(np.float32)
+            if v_name == "Tm":
+                return (tp_arr * 0.85).astype(np.float32)
+            if v_name == "Tz":
+                return (tp_arr * 0.78).astype(np.float32)
+            if v_name == "Dp":
+                return self.ap_db.data["Dm"][sel_idx, t_slice]
+            raise KeyError(f"Variable AP '{v_name}' no disponible en la base de datos.")
 
-        # Si se solicita resolución de 1 hora (dt_hours == 1), interpolar las series AP a paso de 1h
-        if int(dt_hours) == 1 and n_t >= 2:
-            t_orig = np.arange(n_t, dtype=np.float64) * 3.0
-            t_1h = np.arange(0.0, t_orig[-1] + 0.1, 1.0, dtype=np.float64)
-            times = times[0] + pd.to_timedelta(t_1h, unit="h")
-            n_t = len(t_1h)
+        hm0_ap_k = _get_var_slice("Hm0")        # (K, N_t)
+        per_ap_k = _get_var_slice(period_var)   # (K, N_t)
+        dir_ap_k = _get_var_slice(dir_var)      # (K, N_t)
+        tp_ap_k = _get_var_slice("Tp")
+        tm_ap_k = _get_var_slice("Tm")
+        tz_ap_k = _get_var_slice("Tz")
 
-            def _interp_rows(mat_2d: np.ndarray) -> np.ndarray:
-                out = np.empty((mat_2d.shape[0], n_t), dtype=np.float32)
-                for r_i in range(mat_2d.shape[0]):
-                    out[r_i, :] = np.interp(t_1h, t_orig, mat_2d[r_i, :]).astype(np.float32)
-                return out
+        # Remuestrear temporalmente solo cuando el paso nativo difiere del dt_hours solicitado
+        if dt_hours is not None and n_t >= 2:
+            t_orig = np.asarray((times - times[0]).total_seconds(), dtype=np.float64) / 3600.0
+            dt_native = float(np.median(np.diff(t_orig)))
+            target_dt = float(dt_hours)
+            if target_dt > 0 and not np.isclose(dt_native, target_dt, atol=1e-3):
+                t_target = np.arange(0.0, t_orig[-1] + 1e-6, target_dt, dtype=np.float64)
+                times = times[0] + pd.to_timedelta(t_target, unit="h")
+                n_t = len(t_target)
 
-            def _interp_rows_circ(deg_2d: np.ndarray) -> np.ndarray:
-                rad = np.deg2rad(deg_2d.astype(np.float64))
-                s_i = _interp_rows(np.sin(rad))
-                c_i = _interp_rows(np.cos(rad))
-                return (np.rad2deg(np.arctan2(s_i, c_i)) % 360.0).astype(np.float32)
+                def _interp_rows(mat_2d: np.ndarray) -> np.ndarray:
+                    out = np.empty((mat_2d.shape[0], n_t), dtype=np.float32)
+                    for r_i in range(mat_2d.shape[0]):
+                        out[r_i, :] = np.interp(t_target, t_orig, mat_2d[r_i, :]).astype(np.float32)
+                    return out
 
-            hm0_ap_k = _interp_rows(hm0_ap_k)
-            per_ap_k = _interp_rows(per_ap_k)
-            tp_ap_k = _interp_rows(tp_ap_k)
-            tm_ap_k = _interp_rows(tm_ap_k)
-            tz_ap_k = _interp_rows(tz_ap_k)
-            dir_ap_k = _interp_rows_circ(dir_ap_k)
+                def _interp_rows_circ(deg_2d: np.ndarray) -> np.ndarray:
+                    rad = np.deg2rad(deg_2d.astype(np.float64))
+                    s_i = _interp_rows(np.sin(rad))
+                    c_i = _interp_rows(np.cos(rad))
+                    return (np.rad2deg(np.arctan2(s_i, c_i)) % 360.0).astype(np.float32)
+
+                hm0_ap_k = _interp_rows(hm0_ap_k)
+                per_ap_k = _interp_rows(per_ap_k)
+                tp_ap_k = _interp_rows(tp_ap_k)
+                tm_ap_k = _interp_rows(tm_ap_k)
+                tz_ap_k = _interp_rows(tz_ap_k)
+                dir_ap_k = _interp_rows_circ(dir_ap_k)
 
         weights, info = weighter.compute_weights(lon, lat, dir_ap_k)  # (K, N_t)
 
@@ -299,4 +365,5 @@ class WaveHindcastEngine:
 
     run_simulation = run_hindcast
     run_forecast = run_hindcast
+    run_era5 = run_hindcast
 

@@ -3,8 +3,9 @@
 Sistema integrado de **Hindcasting histórico** (1980–2015) y **Forecasting operacional** (pronóstico en tiempo real a 5–6 días) de oleaje en aguas someras (AS) para la costa de Chile ($-17.7^\circ\text{S}$ a $-45.0^\circ\text{S}$), basado en **Funciones de Transferencia Espectrales** ($K_a$ y Dirección) precalculadas con el modelo espectral **SWAN** sobre la malla no estructurada `chile_250k` ($255\,521$ nodos y $490\,875$ elementos triangulares).
 
 El sistema permite alternar en una misma interfaz gráfica y API entre:
-1. **Hindcasting Histórico (1980–2015):** Forzado con la base de datos de Aguas Profundas (AP) de la Universidad de Valparaíso (`oleaje.uv.cl`) sobre una red de **28 boyas virtuales cada $1^\circ$ de latitud** (o 14 nodos Atlas UV).
-2. **Forecasting Operacional NOAA WW3 (Tiempo Real):** Forzado con el modelo global **WAVEWATCH III (WW3 / GFS-Wave)** descargado directamente de servidores oficiales de la **NOAA** (ERDDAP / NOMADS) en los nodos de aguas profundas del borde chileno.
+1. **Hindcasting Histórico Atlas UV (1980–2015):** Forzado con la base de datos de Aguas Profundas (AP) de la Universidad de Valparaíso (`oleaje.uv.cl`) sobre una red de **28 boyas virtuales cada $1^\circ$ de latitud** (o 14 nodos Atlas UV).
+2. **Hindcasting Histórico ERA5 (1940–Presente, con cuenta Copernicus CDS):** Forzado con el reanálisis global **ECMWF ERA5** (`reanalysis-era5-single-levels`, resolución horaria nativa), descargado automáticamente con su cuenta gratuita de Copernicus CDS (`~/.cdsapirc` o API Key en la interfaz) o desde archivos NetCDF ERA5 locales.
+3. **Forecasting Operacional NOAA WW3 (Tiempo Real):** Forzado con el modelo global **WAVEWATCH III (WW3 / GFS-Wave)** descargado directamente de servidores oficiales de la **NOAA** (ERDDAP / NOMADS) en los nodos de aguas profundas del borde chileno.
 
 ---
 
@@ -36,6 +37,7 @@ superSimple/
 │   │   ├── __init__.py
 │   │   ├── buoy_weighting.py          # Ponderación multi-boya por distancia + dirección AP
 │   │   ├── catalog.py                 # Catálogo de 25 puertos, 57 nodos y 569 caletas DOP
+│   │   ├── era5_engine.py             # Cliente Copernicus CDS ERA5, caché mensual y parser NetCDF
 │   │   ├── forecast_engine.py         # Cliente de pronóstico NOAA WW3 (ERDDAP/NOMADS) y caché
 │   │   ├── hindcast_engine.py         # Motor de simulación para Hindcasting y Forecasting
 │   │   └── mesh_interpolator.py       # Interpolador espacial baricéntrico y espectral 2D
@@ -193,12 +195,16 @@ python3 datos_ap_uv/download_uv_hindcast.py
 streamlit run aplicacion_hindcast/app.py --server.port 8501
 ```
 En la barra lateral se puede alternar entre:
-- **⏳ Hindcasting Histórico (1980 - 2015)**
+- **⏳ Hindcasting Histórico Atlas UV (1980 - 2015)**
+- **🌍 Hindcasting Histórico ERA5 (Copernicus CDS, 1940 - Presente)**
 - **🔮 Forecasting Operacional NOAA WW3 (Tiempo Real)**
+
+> **Cuenta Copernicus CDS para ERA5:** Cree una cuenta gratuita en [cds.climate.copernicus.eu](https://cds.climate.copernicus.eu/), acepte los *Terms of Use* del dataset `reanalysis-era5-single-levels` y configure su **Personal Access Token** en `~/.cdsapirc` (`url: https://cds.climate.copernicus.eu/api` y `key: <SU_TOKEN>`) o directamente en la barra lateral de la app.
 
 ### 2. Línea de Comandos (CLI)
 
 ```bash
+# Hindcast histórico Atlas UV (1980-2015)
 python3 aplicacion_hindcast/cli.py \
     --site "San_Anto" \
     --start 2006-01-01 \
@@ -207,6 +213,14 @@ python3 aplicacion_hindcast/cli.py \
     --mode dist_dir \
     --max-buoys 4 \
     --out san_antonio_10yr_1h.csv
+
+# Hindcast ERA5 (1940-presente) usando cuenta Copernicus CDS
+python3 aplicacion_hindcast/cli.py \
+    --source era5 \
+    --site "Valparai" \
+    --start 2024-01-01 \
+    --end 2024-01-31 \
+    --out valparaiso_era5_ene2024.csv
 ```
 
 ### 3. Librería Python (`transfer_lib`)
@@ -214,14 +228,21 @@ python3 aplicacion_hindcast/cli.py \
 ```python
 from transfer_lib import WaveHindcastEngine, WeightingConfig
 
-# 1. Modo Hindcasting Histórico:
+# 1. Modo Hindcasting Histórico Atlas UV:
 engine_hindcast = WaveHindcastEngine(mode="hindcast", buoy_mode="1deg")
 res_h = engine_hindcast.run_hindcast(
     lon=-71.6145, lat=-33.0325, site_name="Valparaiso",
     start_date="2010-01-01", end_date="2015-12-31"
 )
 
-# 2. Modo Forecasting Operacional (NOAA WW3):
+# 2. Modo Hindcasting Histórico ERA5 (cuenta CDS vía ~/.cdsapirc o era5_cds_key):
+engine_era5 = WaveHindcastEngine(
+    mode="era5", buoy_mode="1deg",
+    era5_start_date="2024-01-01", era5_end_date="2024-01-31",
+)
+res_e5 = engine_era5.run_era5(lon=-71.6145, lat=-33.0325, site_name="Valparaiso")
+
+# 3. Modo Forecasting Operacional (NOAA WW3):
 engine_forecast = WaveHindcastEngine(mode="forecast", buoy_mode="1deg")
 res_f = engine_forecast.run_forecast(
     lon=-71.6145, lat=-33.0325, site_name="Valparaiso"

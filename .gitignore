@@ -20,10 +20,15 @@ datos_ap_uv/raw/*.txt
 datos_ap_uv/nodos_1deg/*.npz
 datos_ap_uv/processed/*.nc
 aplicacion_hindcast/forecast_cache/*.npz
+aplicacion_hindcast/era5_cache/*.npz
+aplicacion_hindcast/era5_cache/*.nc
 aplicacion_hindcast/data/*.nc
 empaquetado_notebook/data/*.nc
+empaquetado_notebook/era5_cache/*.npz
+empaquetado_notebook/era5_cache/*.nc
 empaquetado_notebook/.venv/
 .venv/
+.cdsapirc
 *.zip
 
 # Redundant mesh formats and binaries not needed by transfer_lib or SWAN unstructured ADCIRC/Triangle input

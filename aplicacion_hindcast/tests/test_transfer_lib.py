@@ -272,5 +272,278 @@ def test_end_to_end_forecast_simulation_noaa_ww3():
     assert res.summary_stats["Hm0_AS_mean"] > 0.0
 
 
+def _write_synthetic_era5_nc(
+    path: Path,
+    timestamps,
+    legacy_format: bool = False,
+    with_expver: bool = False,
+    mask_eastern_cell: bool = False,
+):
+    """Genera un archivo NetCDF sintético estilo Copernicus CDS ERA5 sobre el dominio chileno."""
+    lats = np.arange(-18.0, -45.5, -1.0, dtype=np.float64)
+    lons_neg = np.array([-76.0, -75.0, -74.0, -73.0, -72.0], dtype=np.float64)
+    lons = (lons_neg % 360.0) if legacy_format else lons_neg
+
+    n_t = len(timestamps)
+    n_lat = len(lats)
+    n_lon = len(lons)
+
+    with nc.Dataset(path, "w") as ds:
+        t_dim = "time" if legacy_format else "valid_time"
+        ds.createDimension(t_dim, n_t)
+        ds.createDimension("latitude", n_lat)
+        ds.createDimension("longitude", n_lon)
+        if with_expver:
+            ds.createDimension("expver", 2)
+
+        vt = ds.createVariable(t_dim, "f8", (t_dim,))
+        if legacy_format:
+            vt.units = "hours since 1900-01-01 00:00:00"
+            vt.calendar = "gregorian"
+            vt[:] = nc.date2num([ts.to_pydatetime() for ts in timestamps], units=vt.units, calendar=vt.calendar)
+        else:
+            vt.units = "seconds since 1970-01-01 00:00:00"
+            vt.calendar = "proleptic_gregorian"
+            vt[:] = nc.date2num([ts.to_pydatetime() for ts in timestamps], units=vt.units, calendar=vt.calendar)
+
+        vlat = ds.createVariable("latitude", "f8", ("latitude",))
+        vlon = ds.createVariable("longitude", "f8", ("longitude",))
+        vlat[:] = lats
+        vlon[:] = lons
+
+        dims = (t_dim, "expver", "latitude", "longitude") if with_expver else (t_dim, "latitude", "longitude")
+        swh_base = np.full((n_t, n_lat, n_lon), 2.4, dtype=np.float32)
+        pp1d_base = np.full((n_t, n_lat, n_lon), 13.5, dtype=np.float32)
+        mwp_base = np.full((n_t, n_lat, n_lon), 11.2, dtype=np.float32)
+        mp2_base = np.full((n_t, n_lat, n_lon), 9.6, dtype=np.float32)
+        mwd_base = np.full((n_t, n_lat, n_lon), 225.0, dtype=np.float32)
+
+        if mask_eastern_cell:
+            # Simular máscara de tierra en -72°W
+            swh_base[:, :, -1] = np.nan
+            pp1d_base[:, :, -1] = np.nan
+            mwp_base[:, :, -1] = np.nan
+            mp2_base[:, :, -1] = np.nan
+            mwd_base[:, :, -1] = np.nan
+
+        for name, arr in [
+            ("swh", swh_base),
+            ("pp1d", pp1d_base),
+            ("mwp", mwp_base),
+            ("mp2", mp2_base),
+            ("mwd", mwd_base),
+        ]:
+            v = ds.createVariable(name, "f4", dims, fill_value=np.float32(np.nan))
+            if with_expver:
+                data4d = np.empty((n_t, 2, n_lat, n_lon), dtype=np.float32)
+                data4d[:, 0, :, :] = arr
+                data4d[:, 1, :, :] = arr
+                # Últimos pasos vienen en expver=1 (ERA5T), expver=0 en NaN
+                if n_t >= 2:
+                    data4d[-2:, 0, :, :] = np.nan
+                v[:] = data4d
+            else:
+                v[:] = arr
+
+
+def test_era5_credentials_resolution_and_cdsapirc_roundtrip(tmp_path, monkeypatch):
+    """Verifica resolución de credenciales Copernicus CDS y lectura/escritura de .cdsapirc."""
+    import os
+    import stat
+    from transfer_lib.era5_engine import (
+        DEFAULT_CDS_URL,
+        resolve_era5_credentials,
+        read_cdsapirc,
+        save_cdsapirc,
+    )
+
+    monkeypatch.delenv("CDSAPI_KEY", raising=False)
+    monkeypatch.delenv("CDSAPI_URL", raising=False)
+    monkeypatch.delenv("CDSAPI_RC", raising=False)
+
+    rc_file = tmp_path / ".cdsapirc"
+    creds_none = resolve_era5_credentials(rc_path=rc_file)
+    assert not creds_none.is_configured
+    assert creds_none.source == "none"
+
+    # Guardar y leer token moderno
+    saved_path = save_cdsapirc(key="my-personal-access-token", url=DEFAULT_CDS_URL, rc_path=rc_file)
+    assert saved_path == rc_file
+    if os.name == "posix":
+        mode = stat.S_IMODE(rc_file.stat().st_mode)
+        assert mode == 0o600
+
+    rc_read = read_cdsapirc(rc_path=rc_file)
+    assert rc_read is not None
+    assert rc_read.is_configured
+    assert rc_read.key == "my-personal-access-token"
+    assert rc_read.source == "cdsapirc"
+
+    # También soportar formato uid:key heredado
+    rc_file.write_text("url: https://cds.climate.copernicus.eu/api\nkey: 12345:abc-def-key\n", encoding="utf-8")
+    rc_legacy = read_cdsapirc(rc_path=rc_file)
+    assert rc_legacy.key == "12345:abc-def-key"
+
+    # Prioridad: explicit > env > cdsapirc
+    monkeypatch.setenv("CDSAPI_KEY", "env-token")
+    c_env = resolve_era5_credentials(rc_path=rc_file)
+    assert c_env.source == "env"
+    assert c_env.key == "env-token"
+
+    c_exp = resolve_era5_credentials(cds_key="explicit-token", rc_path=rc_file)
+    assert c_exp.source == "explicit"
+    assert c_exp.key == "explicit-token"
+
+
+def test_era5_netcdf_parsing_new_cds_legacy_expver_zip_and_land_mask(tmp_path):
+    """Verifica parseo ERA5 para formato nuevo (valid_time), legacy (expver + zip) y máscara tierra."""
+    import zipfile
+    import pandas as pd
+    from transfer_lib.era5_engine import parse_era5_netcdf_to_db
+
+    ts1 = pd.date_range("2024-01-01 00:00:00", periods=6, freq="1h")
+    nc_new = tmp_path / "era5_new.nc"
+    _write_synthetic_era5_nc(nc_new, ts1, legacy_format=False, with_expver=False, mask_eastern_cell=True)
+
+    db_new = parse_era5_netcdf_to_db(nc_new, buoy_mode="1deg")
+    assert len(db_new.timestamps) == 6
+    assert db_new.data["Hm0"].shape == (28, 6)
+    assert np.all(np.isfinite(db_new.data["Hm0"]))
+    assert np.allclose(db_new.data["Hm0"], 2.4, atol=1e-4)
+    assert np.allclose(db_new.data["Te"], 11.2, atol=1e-4)
+    assert np.allclose(db_new.data["Dm"], 225.0, atol=1e-4)
+
+    # Formato legacy con expver 4D + empaquetado en .zip
+    ts2 = pd.date_range("2024-02-01 00:00:00", periods=4, freq="1h")
+    nc_leg = tmp_path / "era5_legacy.nc"
+    _write_synthetic_era5_nc(nc_leg, ts2, legacy_format=True, with_expver=True, mask_eastern_cell=False)
+    zip_path = tmp_path / "era5_legacy.zip"
+    with zipfile.ZipFile(zip_path, "w") as zf:
+        zf.write(nc_leg, arcname="data.nc")
+
+    db_zip = parse_era5_netcdf_to_db(zip_path, buoy_mode="1deg")
+    assert len(db_zip.timestamps) == 4
+    assert np.all(np.isfinite(db_zip.data["Hm0"]))
+    assert np.allclose(db_zip.data["Tp"], 13.5, atol=1e-4)
+
+
+def test_era5_client_monthly_cache_and_mocked_cds_download(tmp_path, monkeypatch):
+    """Verifica agrupación de solicitudes, caché mensual ERA5 y cero llamadas cuando está cacheado."""
+    import types
+    import pandas as pd
+    from transfer_lib.era5_engine import ERA5WaveClient
+
+    calls = []
+
+    class FakeCDSClient:
+        def __init__(self, url=None, key=None, quiet=True):
+            self.url = url
+            self.key = key
+
+        def retrieve(self, dataset, request, target):
+            calls.append({"dataset": dataset, "request": dict(request)})
+            year = int(request["year"])
+            months = request["month"] if isinstance(request["month"], list) else [request["month"]]
+            days = [int(d) for d in request["day"]]
+            hours = [int(t.split(":")[0]) for t in request["time"]]
+
+            stamps = []
+            for m_str in months:
+                m_int = int(m_str)
+                for d_int in days:
+                    try:
+                        base_d = pd.Timestamp(year=year, month=m_int, day=d_int)
+                    except ValueError:
+                        continue
+                    for h_int in hours:
+                        stamps.append(base_d + pd.Timedelta(hours=h_int))
+            _write_synthetic_era5_nc(Path(target), pd.DatetimeIndex(stamps))
+
+    fake_mod = types.ModuleType("cdsapi")
+    fake_mod.Client = FakeCDSClient
+    monkeypatch.setitem(sys.modules, "cdsapi", fake_mod)
+
+    cache_dir = tmp_path / "era5_cache"
+    client = ERA5WaveClient(cds_key="fake-token", cache_dir=cache_dir)
+
+    # 1. Primera descarga: 2024-01-01 a 2024-02-29 (dos meses completos agrupados en 1 llamada)
+    db1 = client.get_era5_data(
+        buoy_mode="1deg",
+        start_date="2024-01-01",
+        end_date="2024-02-29",
+        step_hours=3,
+    )
+    assert len(calls) == 1
+    assert (cache_dir / "era5_1deg_2024_01_3h.npz").exists()
+    assert (cache_dir / "era5_1deg_2024_02_3h.npz").exists()
+    assert len(db1.timestamps) == 60 * 8
+
+    # 2. Sub-rango ya cacheado -> 0 llamadas adicionales a CDS
+    db2 = client.get_era5_data(
+        buoy_mode="1deg",
+        start_date="2024-01-10",
+        end_date="2024-01-20",
+        step_hours=3,
+    )
+    assert len(calls) == 1
+    assert len(db2.timestamps) == 11 * 8
+
+    # 3. Extensión hasta 2024-03-05 -> solo descarga marzo
+    db3 = client.get_era5_data(
+        buoy_mode="1deg",
+        start_date="2024-01-01",
+        end_date="2024-03-05",
+        step_hours=3,
+    )
+    assert len(calls) == 2
+    assert calls[1]["request"]["month"] == "03"
+    assert len(db3.timestamps) == (60 + 5) * 8
+
+
+def test_end_to_end_era5_engine_1h_and_3h_on_chile_250k(tmp_path):
+    """Prueba extremo a extremo de WaveHindcastEngine en modo 'era5' sobre chile_250k (1h y 3h)."""
+    import pandas as pd
+    from transfer_lib import WaveHindcastEngine, WeightingConfig
+
+    ts_1h = pd.date_range("2024-01-01 00:00:00", periods=48, freq="1h")
+    nc_path = tmp_path / "era5_48h.nc"
+    _write_synthetic_era5_nc(nc_path, ts_1h)
+
+    engine = WaveHindcastEngine(
+        mode="era5",
+        buoy_mode="1deg",
+        era5_nc_path=nc_path,
+    )
+
+    # Paso 1h preserva exactamente las 48 estampas horarias
+    res_1h = engine.run_era5(
+        lon=-71.6145,
+        lat=-33.0325,
+        site_name="Valparaiso_ERA5_1h",
+        weighting_config=WeightingConfig(mode="dist_dir", max_buoys=4),
+        dt_hours=1,
+    )
+    assert len(res_1h.timeseries) == 48
+    dt_diffs_1h = res_1h.timeseries["DateTime"].diff().dropna()
+    assert (dt_diffs_1h == np.timedelta64(1, "h")).all()
+    assert np.all(np.isfinite(res_1h.timeseries["Hm0_AS"]))
+    assert np.all(res_1h.timeseries["Hm0_AS"] >= 0.0)
+    assert np.all((res_1h.timeseries["Dir_AS"] >= 0.0) & (res_1h.timeseries["Dir_AS"] <= 360.0))
+    w_cols = [c for c in res_1h.timeseries.columns if c.startswith("w_")]
+    assert np.allclose(res_1h.timeseries[w_cols].sum(axis=1).to_numpy(), 1.0, atol=1e-4)
+
+    # Paso 3h remuestrea limpiamente cada 3 horas
+    res_3h = engine.run_era5(
+        lon=-71.6145,
+        lat=-33.0325,
+        site_name="Valparaiso_ERA5_3h",
+        weighting_config=WeightingConfig(mode="dist_dir", max_buoys=4),
+        dt_hours=3,
+    )
+    assert len(res_3h.timeseries) == 16
+    dt_diffs_3h = res_3h.timeseries["DateTime"].diff().dropna()
+    assert (dt_diffs_3h == np.timedelta64(3, "h")).all()
+
+
 
 

@@ -28,6 +28,7 @@ def sync_package(create_zip: bool = False):
     (DEST_PKG / "data").mkdir(exist_ok=True)
     (DEST_PKG / "assets").mkdir(exist_ok=True)
     (DEST_PKG / "forecast_cache").mkdir(exist_ok=True)
+    (DEST_PKG / "era5_cache").mkdir(exist_ok=True)
 
     # 1. Copiar app.py
     shutil.copy2(SRC_APP / "app.py", DEST_PKG / "app.py")
@@ -73,10 +74,13 @@ def sync_package(create_zip: bool = False):
         with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
             for root, dirs, files in os.walk(DEST_PKG):
                 dirs[:] = [d for d in dirs if d not in [".venv", "__pycache__", ".git"]]
+                root_path = Path(root)
                 for f in files:
-                    if f.endswith((".pyc", ".tmp")) or f.endswith(".nc"):
+                    if f.endswith((".pyc", ".tmp", ".nc")) or f == ".cdsapirc":
                         continue
-                    full_p = Path(root) / f
+                    if root_path.name == "era5_cache" and f.endswith(".npz"):
+                        continue
+                    full_p = root_path / f
                     rel_p = full_p.relative_to(DEST_PKG)
                     zf.write(full_p, arcname=rel_p)
         print(f"[6/6] ZIP generado exitosamente: {zip_path} ({zip_path.stat().st_size / (1024*1024):.2f} MB)")

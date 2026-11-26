@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """
-Interfaz de Línea de Comandos (CLI) para ejecutar el Hindcasting Rápido de Oleaje
+Interfaz de Línea de Comandos (CLI) para ejecutar el Hindcasting o Forecasting de Oleaje
 en cualquier punto costero de Chile usando las matrices de transferencia SWAN
-y el Hindcasting de Aguas Profundas (Atlas UV / Grilla 1°).
+y datos de Aguas Profundas (Atlas UV, Reanálisis ERA5 con cuenta CDS, o Pronóstico NOAA WW3).
 
 Ejemplos de uso:
   python3 cli.py --site "Valparai" --start 2010-01-01 --end 2015-12-31 --out valparaiso_hindcast.csv
+  python3 cli.py --source era5 --site "Valparai" --start 2024-01-01 --end 2024-01-31 --out valpo_era5.csv
+  python3 cli.py --source era5 --era5-nc datos_era5.nc --site "Valparai" --out valpo_era5_local.csv
   python3 cli.py --lon -71.6145 --lat -33.0325 --mode dist_dir --max-buoys 4 --out punto_custom.csv
 """
 
@@ -18,25 +20,45 @@ APP_DIR = Path(__file__).resolve().parent
 if str(APP_DIR) not in sys.path:
     sys.path.insert(0, str(APP_DIR))
 
-from transfer_lib import WaveHindcastEngine, WeightingConfig, load_coastal_sites
+from transfer_lib import (
+    WaveHindcastEngine,
+    WeightingConfig,
+    load_coastal_sites,
+    DEFAULT_CDS_URL,
+    save_cdsapirc,
+)
 
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Hindcasting Rápido de Oleaje en Aguas Someras mediante Funciones de Transferencia SWAN."
+        description="Hindcasting y Forecasting Rápido de Oleaje en Aguas Someras mediante Funciones de Transferencia SWAN."
     )
     parser.add_argument("--lon", type=float, default=None, help="Longitud del punto objetivo (ej. -71.6145)")
     parser.add_argument("--lat", type=float, default=None, help="Latitud del punto objetivo (ej. -33.0325)")
     parser.add_argument("--site", type=str, default=None, help="Nombre de puerto, nodo o caleta del catálogo")
     parser.add_argument("--list-sites", action="store_true", help="Listar sitios costeros disponibles y salir")
+    parser.add_argument(
+        "--source",
+        choices=["uv", "era5", "forecast"],
+        default="uv",
+        help="Fuente de forzamiento en AP: 'uv' (Atlas UV 1980-2015), 'era5' (ECMWF ERA5 1940-presente) o 'forecast' (NOAA WW3)",
+    )
     parser.add_argument("--buoy-grid", choices=["1deg", "uv14"], default="1deg", help="Grilla de boyas AP: '1deg' (28 boyas) o 'uv14' (14 nodos UV)")
     parser.add_argument("--mode", choices=["dist_dir", "idw", "nearest"], default="dist_dir", help="Modo de ponderación multi-boya")
     parser.add_argument("--max-buoys", type=int, default=4, help="Número de boyas de AP cercanas a ponderar")
     parser.add_argument("--period-var", choices=["Tp", "Tm", "Tz", "Te"], default="Tp", help="Periodo de referencia en AP")
     parser.add_argument("--dir-var", choices=["Dm", "Dp"], default="Dm", help="Dirección de referencia en AP")
     parser.add_argument("--dt-hours", type=int, choices=[1, 3], default=1, help="Paso horario de salida: 1h o 3h (default: 1)")
-    parser.add_argument("--start", type=str, default=None, help="Fecha inicio YYYY-MM-DD (por defecto 1980-01-01)")
-    parser.add_argument("--end", type=str, default=None, help="Fecha término YYYY-MM-DD (por defecto 2015-12-31)")
+    parser.add_argument("--start", type=str, default=None, help="Fecha inicio YYYY-MM-DD (obligatoria para ERA5 vía CDS)")
+    parser.add_argument("--end", type=str, default=None, help="Fecha término YYYY-MM-DD (obligatoria para ERA5 vía CDS)")
+    parser.add_argument("--era5-url", type=str, default=None, help=f"URL de Copernicus CDS (default: {DEFAULT_CDS_URL})")
+    parser.add_argument("--era5-key", type=str, default=None, help="Personal Access Token / API Key de Copernicus CDS")
+    parser.add_argument("--era5-nc", type=str, default=None, help="Ruta a archivo NetCDF/ZIP ERA5 local (omite descarga CDS)")
+    parser.add_argument("--era5-step-hours", type=int, choices=[1, 3], default=1, help="Resolución temporal de descarga ERA5 en horas (default: 1)")
+    parser.add_argument("--era5-cache-dir", type=str, default=None, help="Directorio personalizado de caché ERA5")
+    parser.add_argument("--save-cds-credentials", action="store_true", help="Guarda --era5-url y --era5-key en ~/.cdsapirc antes de ejecutar")
+    parser.add_argument("--force-refresh", action="store_true", help="Fuerza re-descarga desde CDS o NOAA ignorando caché local")
+    parser.add_argument("--forecast-server", choices=["erddap", "nomads"], default="erddap", help="Servidor NOAA WW3 para --source forecast")
     parser.add_argument("--out", type=str, default=None, help="Ruta de archivo CSV/Parquet de salida")
     return parser.parse_args()
 
@@ -49,6 +71,12 @@ def main():
         print(f"Total sitios en catálogo: {len(sites_df)}")
         print(sites_df.to_string(max_rows=100))
         return
+
+    if args.save_cds_credentials:
+        if not args.era5_key:
+            raise ValueError("Para usar --save-cds-credentials debe proporcionar --era5-key.")
+        rc_saved = save_cdsapirc(key=args.era5_key, url=args.era5_url or DEFAULT_CDS_URL)
+        print(f"[OK] Credenciales Copernicus CDS guardadas en: {rc_saved}")
 
     lon, lat = args.lon, args.lat
     site_name = args.site or "Punto_Custom"
@@ -69,7 +97,38 @@ def main():
         site_name = "Valparaiso"
 
     t0 = time.perf_counter()
-    engine = WaveHindcastEngine(buoy_mode=args.buoy_grid)
+    if args.source == "era5":
+        if not args.era5_nc and (not args.start or not args.end):
+            raise ValueError(
+                "Para --source era5 debe especificar --start YYYY-MM-DD y --end YYYY-MM-DD "
+                "(o entregar un archivo local con --era5-nc)."
+            )
+        engine = WaveHindcastEngine(
+            buoy_mode=args.buoy_grid,
+            mode="era5",
+            era5_start_date=args.start,
+            era5_end_date=args.end,
+            era5_step_hours=args.era5_step_hours,
+            era5_cds_url=args.era5_url,
+            era5_cds_key=args.era5_key,
+            era5_nc_path=Path(args.era5_nc) if args.era5_nc else None,
+            era5_cache_dir=Path(args.era5_cache_dir) if args.era5_cache_dir else None,
+            force_refresh_era5=args.force_refresh,
+            era5_progress_callback=lambda msg, frac: print(f"  [ERA5 {frac*100:3.0f}%] {msg}"),
+        )
+        source_label = f"ERA5 Copernicus CDS ({Path(args.era5_nc).name})" if args.era5_nc else "ERA5 Copernicus CDS"
+    elif args.source == "forecast":
+        engine = WaveHindcastEngine(
+            buoy_mode=args.buoy_grid,
+            mode="forecast",
+            forecast_server=args.forecast_server,
+            force_refresh_forecast=args.force_refresh,
+        )
+        source_label = f"NOAA WW3 ({args.forecast_server})"
+    else:
+        engine = WaveHindcastEngine(buoy_mode=args.buoy_grid, mode="hindcast")
+        source_label = "Atlas UV (1980-2015)"
+
     w_cfg = WeightingConfig(mode=args.mode, max_buoys=args.max_buoys)
 
     result = engine.run_hindcast(
@@ -86,7 +145,8 @@ def main():
     elapsed = time.perf_counter() - t0
 
     print("=" * 72)
-    print(f"HINDCASTING COSTERO: {result.site_name} (lon={result.lon:.4f}°, lat={result.lat:.4f}°, prof={result.depth:.1f}m)")
+    print(f"SIMULACIÓN COSTERO: {result.site_name} (lon={result.lon:.4f}°, lat={result.lat:.4f}°, prof={result.depth:.1f}m)")
+    print(f"Fuente AP          : {source_label}")
     print(f"Método espacial    : {result.local_tf.spatial_info['method']}")
     print(f"Modo multi-boya AP : {args.mode} (grilla={args.buoy_grid}, K={len(result.buoy_info['buoy_names'])})")
     print(f"Registros          : {result.summary_stats['n_records']} pasos ({elapsed*1000:.1f} ms)")

@@ -6,7 +6,10 @@ Ejecución:
   streamlit run /home/model2/luis/oleaje_chile/superSimple/aplicacion_hindcast/app.py
 """
 
+from datetime import date, datetime, timedelta, timezone
+import os
 import sys
+import tempfile
 import time
 from pathlib import Path
 import numpy as np
@@ -24,13 +27,19 @@ from transfer_lib import (
     WaveHindcastEngine,
     WeightingConfig,
     MultiBuoyWeighter,
+    TransferMatrixDB,
     load_coastal_sites,
     NOAAWaveForecastClient,
     DeepWaterForecastDB,
+    ERA5WaveClient,
+    DeepWaterERA5DB,
+    DEFAULT_CDS_URL,
+    resolve_era5_credentials,
+    save_cdsapirc,
 )
 
 st.set_page_config(
-    page_title="Oleaje Chile - Hindcasting & Forecasting NOAA WW3",
+    page_title="Oleaje Chile - Hindcasting (Atlas UV / ERA5) & Forecasting NOAA WW3",
     page_icon="🌊",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -38,8 +47,26 @@ st.set_page_config(
 
 
 @st.cache_resource
+def get_transfer_db() -> TransferMatrixDB:
+    env_path = os.getenv("OLEAJE_TRANSFER_NC")
+    local_nc = APP_DIR / "data" / "matriz_transferencia_chile.nc"
+    repo_nc = APP_DIR.parent / "trabajo_swan" / "matrices" / "matriz_transferencia_chile.nc"
+    if env_path and Path(env_path).exists():
+        nc_path = Path(env_path)
+    elif local_nc.exists():
+        nc_path = local_nc
+    else:
+        nc_path = repo_nc
+    return TransferMatrixDB(nc_path)
+
+
+@st.cache_resource
 def get_hindcast_engine(buoy_mode: str) -> WaveHindcastEngine:
-    return WaveHindcastEngine(buoy_mode=buoy_mode, mode="hindcast")
+    return WaveHindcastEngine(
+        buoy_mode=buoy_mode,
+        mode="hindcast",
+        transfer_db=get_transfer_db(),
+    )
 
 
 def get_forecast_engine(buoy_mode: str, server: str, force_refresh: bool = False) -> WaveHindcastEngine:
@@ -49,6 +76,7 @@ def get_forecast_engine(buoy_mode: str, server: str, force_refresh: bool = False
         mode="forecast",
         forecast_server=srv_key,
         force_refresh_forecast=force_refresh,
+        transfer_db=get_transfer_db(),
     )
 
 
@@ -106,9 +134,9 @@ def build_wave_rose(df: pd.DataFrame, hm0_col: str, dir_col: str, title: str) ->
 LOGO_INH = APP_DIR / "assets" / "INH.png"
 
 DISCLAIMER_TEXT = (
-    "**Aviso legal (disclaimer):** Los datos presentados en esta aplicación (tanto de hindcasting histórico "
-    "como de pronóstico operacional NOAA WW3) son **aproximaciones** obtenidas mediante modelación numérica "
-    "y funciones de transferencia espectral, por lo que pueden diferir de las condiciones reales de oleaje. "
+    "**Aviso legal (disclaimer):** Los datos presentados en esta aplicación (hindcasting histórico Atlas UV / "
+    "ERA5 Copernicus CDS y pronóstico operacional NOAA WW3) son **aproximaciones** obtenidas mediante modelación "
+    "numérica y funciones de transferencia espectral, por lo que pueden diferir de las condiciones reales de oleaje. "
     "Su uso es **bajo su propio riesgo**; el Instituto Nacional de Hidráulica no se hace responsable por decisiones "
     "operacionales, de navegación o daños derivados de su utilización."
 )
@@ -128,12 +156,14 @@ def main():
         sim_mode = st.radio(
             "Seleccione el modo:",
             [
-                "⏳ Hindcasting Histórico (1980 - 2015)",
+                "⏳ Hindcasting Histórico Atlas UV (1980 - 2015)",
+                "🌍 Hindcasting Histórico ERA5 (Copernicus CDS, 1940 - Presente)",
                 "🔮 Forecasting Operacional NOAA WW3 (Tiempo Real)",
             ],
             index=0,
         )
         is_forecast = "Forecasting" in sim_mode
+        is_era5 = "ERA5" in sim_mode
 
         st.divider()
         st.header("1. Selección de Punto Costero")
@@ -188,6 +218,20 @@ def main():
         dist_power = st.slider("Exponente de distancia (p):", min_value=1.0, max_value=4.0, value=2.0, step=0.5)
 
         st.divider()
+        btn_refresh = False
+        btn_refresh_era5 = False
+        forecast_server = "erddap"
+        horizon_opt = "todo"
+        start_year = 0
+        end_year = 0
+        use_era5_local = False
+        uploaded_era5 = None
+        cds_url_in = DEFAULT_CDS_URL
+        cds_key_in = ""
+        era5_start_dt = date(2024, 1, 1)
+        era5_end_dt = date(2024, 1, 31)
+        era5_step_hours = 1
+
         if is_forecast:
             st.header("3. Parámetros de Pronóstico NOAA")
             forecast_server = st.selectbox(
@@ -217,13 +261,94 @@ def main():
                 format_func=lambda x: "Cada 3 horas (Nativo NOAA WW3)" if x == 3 else "Cada 1 hora (Interpolado horario)",
                 index=0,
             )
-            start_year = 0
-            end_year = 0
+        elif is_era5:
+            st.header("3. Cuenta Copernicus CDS y Fechas ERA5")
+            era5_source_opt = st.radio(
+                "Origen de datos ERA5:",
+                [
+                    "Descarga con cuenta Copernicus CDS",
+                    "Archivo NetCDF ERA5 local (.nc / .zip)",
+                ],
+                index=0,
+            )
+            use_era5_local = era5_source_opt.startswith("Archivo")
+
+            if use_era5_local:
+                uploaded_era5 = st.file_uploader("Subir archivo ERA5 (.nc o .zip)", type=["nc", "zip"])
+            else:
+                creds_detected = resolve_era5_credentials()
+                if creds_detected.source == "cdsapirc":
+                    st.success("✅ Cuenta detectada en `~/.cdsapirc`")
+                elif creds_detected.source == "env":
+                    st.success("✅ Cuenta detectada vía variables de entorno")
+                else:
+                    st.warning("⚠️ Configure su cuenta Copernicus CDS")
+
+                cds_url_in = st.text_input("URL CDS:", value=creds_detected.url or DEFAULT_CDS_URL)
+                cds_key_in = st.text_input(
+                    "API Key / Personal Access Token:",
+                    value="",
+                    type="password",
+                    placeholder="Dejar vacío para usar ~/.cdsapirc" if creds_detected.is_configured else "Pegar Personal Access Token de CDS",
+                )
+                if st.button("💾 Guardar credenciales en ~/.cdsapirc"):
+                    key_to_save = cds_key_in.strip() or (creds_detected.key or "")
+                    try:
+                        saved_rc = save_cdsapirc(key=key_to_save, url=cds_url_in)
+                        st.success(f"Credenciales guardadas en `{saved_rc}`")
+                    except Exception as cred_err:
+                        st.error(f"No se pudieron guardar las credenciales: {cred_err}")
+
+                with st.expander("ℹ️ ¿Cómo crear una cuenta gratuita de ERA5 (CDS)?"):
+                    st.markdown(
+                        "1. Regístrese gratis en [cds.climate.copernicus.eu](https://cds.climate.copernicus.eu/).\n"
+                        "2. Abra el dataset **`reanalysis-era5-single-levels`** y acepte los **Terms of Use / Licence** en la pestaña *Download*.\n"
+                        "3. Copie su **Personal Access Token** desde su perfil CDS y péguelo arriba (o guárdelo en `~/.cdsapirc`)."
+                    )
+
+                max_era5_date = (datetime.now(timezone.utc) - timedelta(days=5)).date()
+                min_era5_date = date(1940, 1, 1)
+                default_e5_end = min(date(2024, 1, 31), max_era5_date)
+                default_e5_start = min(date(2024, 1, 1), default_e5_end)
+
+                col_e1, col_e2 = st.columns(2)
+                era5_start_dt = col_e1.date_input(
+                    "Fecha inicio ERA5:",
+                    value=default_e5_start,
+                    min_value=min_era5_date,
+                    max_value=max_era5_date,
+                )
+                era5_end_dt = col_e2.date_input(
+                    "Fecha fin ERA5:",
+                    value=default_e5_end,
+                    min_value=min_era5_date,
+                    max_value=max_era5_date,
+                )
+                if era5_end_dt < era5_start_dt:
+                    era5_end_dt = era5_start_dt
+
+                era5_step_hours = st.selectbox(
+                    "Resolución descarga ERA5:",
+                    options=[1, 3],
+                    format_func=lambda x: "Cada 1 hora (Nativo ERA5)" if x == 1 else "Cada 3 horas (Descarga más liviana)",
+                    index=0,
+                )
+                btn_refresh_era5 = st.button(
+                    "🔄 Re-descargar ERA5 desde CDS",
+                    help="Ignora el caché mensual local y descarga nuevamente este rango desde Copernicus CDS",
+                )
+
+            dt_hours = st.selectbox(
+                "Paso de tiempo de salida:",
+                options=[1, 3],
+                format_func=lambda x: "Cada 1 hora" if x == 1 else "Cada 3 horas",
+                index=0,
+            )
+            period_var = st.selectbox("Periodo de entrada AP:", ["Tp", "Tm", "Tz", "Te"], index=0)
+            dir_var = st.selectbox("Dirección de entrada AP:", ["Dm"], index=0)
+            st.caption("ERA5 provee dirección media de oleaje (`mwd` -> `Dm`).")
         else:
             st.header("3. Parámetros y Fechas")
-            btn_refresh = False
-            forecast_server = "erddap"
-            horizon_opt = "todo"
             period_var = st.selectbox("Periodo de entrada AP:", ["Tp", "Tm", "Tz", "Te"], index=0)
             dir_var = st.selectbox("Dirección de entrada AP:", ["Dm", "Dp"], index=0)
             dt_hours = st.selectbox(
@@ -244,22 +369,31 @@ def main():
         if LOGO_INH.exists():
             st.image(str(LOGO_INH), width=110)
     with col_title:
-        title_text = (
-            "🔮 Sistema de Pronóstico Operacional de Oleaje (NOAA WW3)"
-            if is_forecast
-            else "🌊 Sistema de Hindcasting Rápido de Oleaje en Chile"
-        )
-        subtitle_text = (
-            "**Pronóstico de Oleaje en Aguas Someras mediante Matrices de Transferencia SWAN `chile_250k` "
-            "y Forzamiento Espectral Global NOAA WAVEWATCH III (ERDDAP / NOMADS)**"
-            if is_forecast
-            else "**Método de Matrices de Transferencia ($K_a$ y Dirección) sobre Malla No Estructurada SWAN `chile_250k` "
-            "y Ponderación Espacial-Direccional Multi-Boya de Aguas Profundas**"
-        )
+        if is_forecast:
+            title_text = "🔮 Sistema de Pronóstico Operacional de Oleaje (NOAA WW3)"
+            subtitle_text = (
+                "**Pronóstico de Oleaje en Aguas Someras mediante Matrices de Transferencia SWAN `chile_250k` "
+                "y Forzamiento Espectral Global NOAA WAVEWATCH III (ERDDAP / NOMADS)**"
+            )
+        elif is_era5:
+            title_text = "🌍 Sistema de Hindcasting de Oleaje con Reanálisis ERA5 (Copernicus CDS)"
+            subtitle_text = (
+                "**Reanálisis Histórico ERA5 (1940–Presente, resolución horaria) propagado a Aguas Someras "
+                "mediante Matrices de Transferencia SWAN `chile_250k` y Ponderación Multi-Boya**"
+            )
+        else:
+            title_text = "🌊 Sistema de Hindcasting Rápido de Oleaje en Chile"
+            subtitle_text = (
+                "**Método de Matrices de Transferencia ($K_a$ y Dirección) sobre Malla No Estructurada SWAN `chile_250k` "
+                "y Ponderación Espacial-Direccional Multi-Boya de Aguas Profundas**"
+            )
         st.title(title_text)
         st.markdown(subtitle_text)
 
-    # Cargar motor y ejecutar simulación (Hindcast o Forecast)
+    # Cargar motor y ejecutar simulación (Atlas UV, ERA5 o Forecast)
+    era5_start_str = era5_start_dt.strftime("%Y-%m-%d")
+    era5_end_str = era5_end_dt.strftime("%Y-%m-%d")
+
     try:
         if is_forecast:
             engine = get_forecast_engine(
@@ -267,10 +401,122 @@ def main():
                 server=forecast_server,
                 force_refresh=btn_refresh,
             )
+        elif is_era5:
+            t_db = get_transfer_db()
+            if use_era5_local:
+                if uploaded_era5 is None:
+                    st.info("📂 Suba un archivo NetCDF ERA5 (`.nc` o `.zip`) en la barra lateral para iniciar la simulación.")
+                    render_disclaimer()
+                    st.stop()
+
+                file_sig = (uploaded_era5.name, uploaded_era5.size, buoy_grid)
+                if st.session_state.get("era5_local_sig") != file_sig:
+                    suffix = Path(uploaded_era5.name).suffix or ".nc"
+                    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp_f:
+                        tmp_f.write(uploaded_era5.getvalue())
+                        tmp_path = Path(tmp_f.name)
+                    try:
+                        local_db = ERA5WaveClient().load_from_local_netcdf(tmp_path, buoy_mode=buoy_grid)
+                    finally:
+                        tmp_path.unlink(missing_ok=True)
+                    st.session_state["era5_local_sig"] = file_sig
+                    st.session_state["era5_local_db"] = local_db
+                else:
+                    local_db = st.session_state["era5_local_db"]
+
+                engine = WaveHindcastEngine(
+                    buoy_mode=buoy_grid,
+                    mode="era5",
+                    deepwater_db=local_db,
+                    transfer_db=t_db,
+                )
+                era5_start_str = str(local_db.timestamps[0])
+                era5_end_str = str(local_db.timestamps[-1])
+                st.success(
+                    f"📂 Archivo ERA5 local `{uploaded_era5.name}` cargado "
+                    f"({local_db.timestamps[0]} a {local_db.timestamps[-1]}, {len(local_db.timestamps):,} pasos)."
+                )
+            else:
+                era5_client = ERA5WaveClient(
+                    cds_url=cds_url_in,
+                    cds_key=cds_key_in.strip() or None,
+                )
+                is_cached, missing_months = era5_client.check_cache_coverage(
+                    buoy_mode=buoy_grid,
+                    start_date=era5_start_str,
+                    end_date=era5_end_str,
+                    step_hours=era5_step_hours,
+                )
+
+                if is_cached and not btn_refresh_era5:
+                    engine = WaveHindcastEngine(
+                        buoy_mode=buoy_grid,
+                        mode="era5",
+                        era5_start_date=era5_start_str,
+                        era5_end_date=era5_end_str,
+                        era5_step_hours=era5_step_hours,
+                        era5_cds_url=cds_url_in,
+                        era5_cds_key=cds_key_in.strip() or None,
+                        transfer_db=t_db,
+                    )
+                    st.success(
+                        f"💾 Datos ERA5 (`{era5_start_str}` a `{era5_end_str}`, paso {era5_step_hours}h) "
+                        "cargados al instante desde el caché local."
+                    )
+                else:
+                    creds_now = era5_client.get_credentials()
+                    missing_labels = [f"{y:04d}-{m:02d} ({len(days)}d)" for y, m, days in missing_months]
+                    st.info(
+                        f"🌍 **Descarga ERA5 requerida:** El rango `{era5_start_str}` a `{era5_end_str}` "
+                        f"(grilla `{buoy_grid}`, paso `{era5_step_hours}h`) requiere descargar "
+                        f"**{len(missing_months)} bloque(s) mensual(es)** desde Copernicus CDS: "
+                        f"`{', '.join(missing_labels[:12])}{'...' if len(missing_labels) > 12 else ''}`."
+                    )
+                    cached_entries = era5_client.list_cached_ranges(buoy_mode=buoy_grid)
+                    if cached_entries:
+                        cached_summary = ", ".join(
+                            f"{e['year']:04d}-{e['month']:02d} ({e['step_hours']}h)"
+                            for e in cached_entries[:12]
+                        )
+                        st.caption(f"Bloques mensuales ya disponibles en caché local: {cached_summary}")
+
+                    if not creds_now.is_configured:
+                        st.warning(
+                            "⚠️ No se detectaron credenciales de Copernicus CDS. "
+                            "Pegue su Personal Access Token en la barra lateral o configure `~/.cdsapirc` antes de descargar."
+                        )
+
+                    btn_download_era5 = st.button(
+                        "⬇️ Descargar ERA5 desde Copernicus CDS y Simular",
+                        type="primary",
+                        disabled=not creds_now.is_configured,
+                    )
+                    if btn_download_era5 or btn_refresh_era5:
+                        with st.status("Descargando reanálisis ERA5 desde Copernicus CDS...", expanded=True) as status:
+                            def _on_progress(msg: str, frac: float):
+                                status.write(f"[{frac*100:3.0f}%] {msg}")
+
+                            engine = WaveHindcastEngine(
+                                buoy_mode=buoy_grid,
+                                mode="era5",
+                                era5_start_date=era5_start_str,
+                                era5_end_date=era5_end_str,
+                                era5_step_hours=era5_step_hours,
+                                era5_cds_url=cds_url_in,
+                                era5_cds_key=cds_key_in.strip() or None,
+                                force_refresh_era5=btn_refresh_era5,
+                                era5_progress_callback=_on_progress,
+                                transfer_db=t_db,
+                            )
+                            status.update(label="Descarga ERA5 completada y almacenada en caché local.", state="complete")
+                    else:
+                        render_disclaimer()
+                        st.stop()
         else:
             engine = get_hindcast_engine(buoy_grid)
     except Exception as e:
-        st.error(f"Error cargando base de datos ({'Pronóstico NOAA' if is_forecast else 'Hindcast'}): {e}")
+        err_ctx = "Pronóstico NOAA" if is_forecast else ("ERA5 Copernicus CDS" if is_era5 else "Hindcast")
+        st.error(f"Error cargando base de datos ({err_ctx}): {e}")
         render_disclaimer()
         st.stop()
 
@@ -295,6 +541,9 @@ def main():
             end_date = str(all_times[0] + pd.Timedelta(hours=120))
         else:
             end_date = str(all_times[-1])
+    elif is_era5:
+        start_date = era5_start_str
+        end_date = era5_end_str
     else:
         start_date = f"{int(start_year)}-01-01"
         end_date = f"{int(end_year)}-12-31 23:59:59"
@@ -333,7 +582,12 @@ def main():
     tab1_label = "🗺️ 1. Ubicación, Malla y Boyas AP"
     tab2_label = "📐 2. Matrices de Transferencia (Ka y Dir)"
     tab3_label = "🧭 3. Ponderación Multi-Boya (Distancia + Dirección)"
-    tab4_label = "🔮 4. Serie de Pronóstico NOAA WW3" if is_forecast else "📈 4. Serie de Hindcasting y Clima de Oleaje"
+    if is_forecast:
+        tab4_label = "🔮 4. Serie de Pronóstico NOAA WW3"
+    elif is_era5:
+        tab4_label = "🌍 4. Serie de Hindcasting ERA5 y Clima de Oleaje"
+    else:
+        tab4_label = "📈 4. Serie de Hindcasting y Clima de Oleaje"
 
     tab1, tab2, tab3, tab4 = st.tabs([tab1_label, tab2_label, tab3_label, tab4_label])
 
@@ -610,6 +864,16 @@ def main():
                 f"📡 **Forzamiento Espectral Oceánico:** Modelo global WAVEWATCH III / GFS-Wave de la NOAA. "
                 f"Transformado a aguas someras mediante SWAN `chile_250k`. Fuente: `{src_str}`."
             )
+        elif is_era5:
+            st.subheader(
+                f"Serie de Tiempo ERA5 ({t_start_fmt} – {t_end_fmt} UTC, cada {dt_hours} h, "
+                f"{len(ts):,} registros) en {res.site_name}"
+            )
+            src_str = engine.ap_db.metadata.get("source", "ECMWF ERA5 (Copernicus CDS)")
+            st.info(
+                f"🌍 **Forzamiento Reanálisis Oceánico:** {src_str}. "
+                f"Transformado a aguas someras mediante SWAN `chile_250k`."
+            )
         else:
             st.subheader(
                 f"Serie de Tiempo de Hindcasting ({start_year}–{end_year}, cada {dt_hours} h, "
@@ -617,16 +881,15 @@ def main():
             )
 
         # Graficar serie temporal usando WebGL (Scattergl)
-        sub_title_hm0 = (
-            "Hm0 Pronosticado: Borde NOAA Aguas Profundas (AP) vs Costa Aguas Someras (AS)"
-            if is_forecast
-            else "Altura Significativa Hm0: Aguas Profundas (AP) vs Aguas Someras (AS)"
-        )
-        sub_title_dir = (
-            "Dirección del Oleaje Pronosticada: Borde NOAA (AP) vs Costa (AS)"
-            if is_forecast
-            else "Dirección del Oleaje: Aguas Profundas (AP) vs Aguas Someras (AS)"
-        )
+        if is_forecast:
+            sub_title_hm0 = "Hm0 Pronosticado: Borde NOAA Aguas Profundas (AP) vs Costa Aguas Someras (AS)"
+            sub_title_dir = "Dirección del Oleaje Pronosticada: Borde NOAA (AP) vs Costa (AS)"
+        elif is_era5:
+            sub_title_hm0 = "Altura Significativa Hm0: Borde ERA5 Aguas Profundas (AP) vs Costa Aguas Someras (AS)"
+            sub_title_dir = "Dirección del Oleaje: Borde ERA5 (AP) vs Costa (AS)"
+        else:
+            sub_title_hm0 = "Altura Significativa Hm0: Aguas Profundas (AP) vs Aguas Someras (AS)"
+            sub_title_dir = "Dirección del Oleaje: Aguas Profundas (AP) vs Aguas Someras (AS)"
 
         fig_ts = make_subplots(
             rows=3,
@@ -664,8 +927,17 @@ def main():
 
         col_r1, col_r2 = st.columns(2)
         with col_r1:
+            rose_ap_title = (
+                "Rosa de Oleaje en Aguas Profundas (Borde NOAA Ponderado)"
+                if is_forecast
+                else (
+                    "Rosa de Oleaje en Aguas Profundas (Borde ERA5 Ponderado)"
+                    if is_era5
+                    else "Rosa de Oleaje en Aguas Profundas (Borde Ponderado)"
+                )
+            )
             st.plotly_chart(
-                build_wave_rose(ts, "Hm0_AP", "Dir_AP", "Rosa de Oleaje en Aguas Profundas (Borde NOAA Ponderado)" if is_forecast else "Rosa de Oleaje en Aguas Profundas (Borde Ponderado)"),
+                build_wave_rose(ts, "Hm0_AP", "Dir_AP", rose_ap_title),
                 use_container_width=True,
             )
         with col_r2:
@@ -686,6 +958,9 @@ def main():
         if is_forecast:
             btn_label = f"⬇️ Descargar Pronóstico NOAA en {res.site_name} (.CSV)"
             f_name = f"forecast_AS_{res.site_name.replace(' ', '_')}_{ts['DateTime'].iloc[0].strftime('%Y%m%d')}_{ts['DateTime'].iloc[-1].strftime('%Y%m%d')}.csv"
+        elif is_era5:
+            btn_label = f"⬇️ Descargar Serie ERA5 en {res.site_name} (.CSV)"
+            f_name = f"hindcast_ERA5_AS_{res.site_name.replace(' ', '_')}_{ts['DateTime'].iloc[0].strftime('%Y%m%d')}_{ts['DateTime'].iloc[-1].strftime('%Y%m%d')}.csv"
         else:
             btn_label = f"⬇️ Descargar Serie de Hindcasting en {res.site_name} (.CSV)"
             f_name = f"hindcast_AS_{res.site_name.replace(' ', '_')}_{start_year}_{end_year}.csv"

@@ -7,6 +7,16 @@ from .buoy_weighting import MultiBuoyWeighter, WeightingConfig, haversine_km, be
 from .mesh_interpolator import TransferMatrixDB, LocalTransferFunction
 from .hindcast_engine import WaveHindcastEngine, DeepWaterHindcastDB, HindcastResult
 from .forecast_engine import NOAAWaveForecastClient, DeepWaterForecastDB
+from .era5_engine import (
+    ERA5Credentials,
+    DeepWaterERA5DB,
+    ERA5WaveClient,
+    DEFAULT_CDS_URL,
+    resolve_era5_credentials,
+    read_cdsapirc,
+    save_cdsapirc,
+    parse_era5_netcdf_to_db,
+)
 
 __all__ = [
     "load_coastal_sites",
@@ -22,4 +32,12 @@ __all__ = [
     "HindcastResult",
     "NOAAWaveForecastClient",
     "DeepWaterForecastDB",
+    "ERA5Credentials",
+    "DeepWaterERA5DB",
+    "ERA5WaveClient",
+    "DEFAULT_CDS_URL",
+    "resolve_era5_credentials",
+    "read_cdsapirc",
+    "save_cdsapirc",
+    "parse_era5_netcdf_to_db",
 ]

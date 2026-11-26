@@ -19,6 +19,7 @@ empaquetado_notebook/
 │   ├── catalogo_nodos_uv.csv   # 14 nodos de aguas profundas Atlas UV
 │   └── (aquí van los .nc pesados)
 ├── forecast_cache/             # Almacenamiento local de pronósticos NOAA recientes
+├── era5_cache/                 # Caché mensual local de reanálisis ERA5 (Copernicus CDS)
 ├── requirements.txt            # Dependencias Python optimizadas para Windows y Linux
 ├── descargar_datos.py          # Script de verificación y descarga automática de NetCDF
 ├── iniciar_linux.sh            # Lanzador para Linux Nativo y WSL (Ubuntu, Fedora, Arch)
@@ -134,10 +135,14 @@ Para el cálculo sobre la malla `chile_250k`, el sistema utiliza dos archivos Ne
    - Permite consultar el pronóstico a 5–6 días en cualquier puerto, caleta o coordenada de Chile.
    - Funciona de forma 100% pura en Python sin requerir compiladores C ni librerías del sistema adicionales.
 
-2. **Hindcasting Histórico (1980–2015):**
+2. **Hindcasting Histórico Atlas UV (1980–2015):**
    - Consulta instantánea (< 50 ms) de los 36 años de oleaje en cualquier punto de la costa.
    - Exportación de series horarias y tri-horarias en formato `.CSV`.
    - Rosas de oleaje polar y análisis de transformación espectral.
+
+3. **Hindcasting Histórico ERA5 (1940–Presente, con cuenta Copernicus CDS):**
+   - Descarga autenticada con su cuenta gratuita de Copernicus CDS (`~/.cdsapirc` o ingresando su Personal Access Token en la barra lateral) o carga de archivos NetCDF ERA5 locales.
+   - Caché mensual automático en `era5_cache/` para evitar descargas repetidas.
 
 ---
 

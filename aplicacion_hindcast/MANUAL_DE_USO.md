@@ -14,9 +14,11 @@ Ruta raíz: `/home/model2/luis/oleaje_chile/superSimple/`
 | `datos_ap_uv/processed/hindcast_uv_14nodos.nc` | Base de datos oficial descargada de `oleaje.uv.cl` (**14 nodos cada $2^\circ$**, $1980\text{–}2015$). |
 | `trabajo_swan/matrices/matriz_transferencia_chile.nc` | Matriz de transferencia consolidada ($9\text{ periodos} \times 37\text{ direcciones} \times 255\,521\text{ nodos}$) generada con SWAN sobre `chile_250k`. |
 | `trabajo_swan/DataSet/` | Los 333 archivos `.mat` individuales de cada corrida estacionaria unitaria ($H_s = 1.0\,\text{m}$). |
-| `aplicacion_hindcast/transfer_lib/` | Librería Python principal (`WaveHindcastEngine`, `TransferMatrixDB`, `MultiBuoyWeighter`, `NOAAWaveForecastClient`). |
+| `aplicacion_hindcast/transfer_lib/` | Librería Python principal (`WaveHindcastEngine`, `TransferMatrixDB`, `MultiBuoyWeighter`, `NOAAWaveForecastClient`, `ERA5WaveClient`). |
+| `aplicacion_hindcast/transfer_lib/era5_engine.py` | Cliente autenticado Copernicus CDS (`cdsapi`), caché mensual y parser NetCDF para reanálisis ERA5 (1940–presente). |
 | `aplicacion_hindcast/transfer_lib/forecast_engine.py` | Cliente de descarga y procesamiento de pronósticos NOAA WW3 (ERDDAP / NOMADS). |
 | `aplicacion_hindcast/assets/INH.png` | Logotipo oficial del Instituto Nacional de Hidráulica (Ministerio de Obras Públicas). |
+| `aplicacion_hindcast/era5_cache/` | Directorio de caché mensual local para datos ERA5 (.npz). |
 | `aplicacion_hindcast/forecast_cache/` | Directorio de caché local para series de pronóstico de aguas profundas (.npz). |
 | `aplicacion_hindcast/app.py` | Aplicación web interactiva en **Streamlit + Plotly**. |
 | `aplicacion_hindcast/cli.py` | Interfaz de línea de comandos (CLI) para consultas y exportación rápida. |
@@ -39,7 +41,8 @@ streamlit run aplicacion_hindcast/app.py --server.port 8501
 ### Flujo de trabajo en el Panel Lateral (Sidebar):
 
 1. **Modo de Operación**:
-   - `⏳ Hindcasting Histórico (1980 - 2015)`: Para estudios de clima marítimo, estadística de extremos y análisis de 36 años históricos con datos Atlas UV.
+   - `⏳ Hindcasting Histórico Atlas UV (1980 - 2015)`: Para estudios de clima marítimo, estadística de extremos y análisis de 36 años históricos con datos Atlas UV.
+   - `🌍 Hindcasting Histórico ERA5 (Copernicus CDS, 1940 - Presente)`: Para estudios desde 1940 hasta el presente con resolución horaria nativa usando una cuenta gratuita de Copernicus CDS (`~/.cdsapirc` o API Key) o archivos NetCDF ERA5 locales.
    - `🔮 Forecasting Operacional NOAA WW3 (Tiempo Real)`: Para pronóstico operacional a 5–6 días forzado con el modelo global WAVEWATCH III de la NOAA.
 
 2. **1. Selección de punto costero**:
@@ -102,6 +105,25 @@ El script `cli.py` permite generar series de hindcasting directamente desde la t
     --period-var Tp \
     --dir-var Dm \
     --out viña_del_mar_hindcast.csv
+```
+
+### D. Ejecutar Hindcasting ERA5 con cuenta Copernicus CDS (o archivo NetCDF local)
+```bash
+# Vía cuenta Copernicus CDS (usa ~/.cdsapirc o --era5-key)
+python3 /home/model2/luis/oleaje_chile/superSimple/aplicacion_hindcast/cli.py \
+    --source era5 \
+    --site "Valparai" \
+    --start 2024-01-01 \
+    --end 2024-01-31 \
+    --era5-step-hours 1 \
+    --out valparaiso_era5_ene2024.csv
+
+# O desde un archivo ERA5 descargado manualmente (.nc o .zip)
+python3 /home/model2/luis/oleaje_chile/superSimple/aplicacion_hindcast/cli.py \
+    --source era5 \
+    --era5-nc ruta/al/archivo_era5.nc \
+    --site "Valparai" \
+    --out valparaiso_era5_local.csv
 ```
 
 ---

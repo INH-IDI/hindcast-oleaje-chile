@@ -23,14 +23,19 @@ La aplicación abrirá la interfaz en `http://localhost:8501` mostrando:
 
 En el panel lateral izquierdo (**Sidebar**), seleccione el modo de trabajo deseado:
 
-### Modo A: ⏳ Hindcasting Histórico (1980 – 2015)
+### Modo A: ⏳ Hindcasting Histórico Atlas UV (1980 – 2015)
 1. **Ubicación costera:** Seleccione un puerto (25 puertos), nodo de interés (57 sitios) o caleta DOP (569 caletas) del catálogo, o ingrese coordenadas `(Lon, Lat)`.
 2. **Boyas de Aguas Profundas:** Elija entre la red de 28 boyas cada 1° (`1deg`) o 14 nodos Atlas UV (`uv14`).
 3. **Ponderación:** Se recomienda `Distancia + Dirección AP` para considerar el efecto aguas arriba de la procedencia del oleaje.
 4. **Fechas:** Defina el rango de años entre 1980 y 2015 y la resolución temporal (1 hora o 3 horas).
 5. **Resultados:** En la pestaña **4** visualice la serie temporal multivariable y descargue el archivo `.CSV` correspondiente.
 
-### Modo B: 🔮 Forecasting Operacional NOAA WW3 (Tiempo Real)
+### Modo B: 🌍 Hindcasting Histórico ERA5 (Copernicus CDS, 1940 – Presente)
+1. **Cuenta Copernicus CDS:** Cree una cuenta gratuita en [cds.climate.copernicus.eu](https://cds.climate.copernicus.eu/), acepte los *Terms of Use* del dataset `reanalysis-era5-single-levels`, y copie su **Personal Access Token**.
+2. **Configuración de credenciales:** La app detecta automáticamente `~/.cdsapirc` o `CDSAPI_KEY`, o permite pegar su API Key en la barra lateral y guardarla con **💾 Guardar credenciales en ~/.cdsapirc**. También puede subir un NetCDF ERA5 local (`.nc` o `.zip`).
+3. **Fechas y resolución:** Elija cualquier rango desde `1940-01-01`, resolución de descarga (`1h` nativa ERA5 o `3h`), y haga clic en **⬇️ Descargar ERA5 desde Copernicus CDS y Simular**. Los bloques mensuales quedan guardados en `era5_cache/` para consultas futuras instantáneas.
+
+### Modo C: 🔮 Forecasting Operacional NOAA WW3 (Tiempo Real)
 1. **Ubicación costera:** Seleccione el puerto, caleta o coordenada donde desea pronosticar el oleaje.
 2. **Servidor NOAA:**
    - `NOAA ERDDAP (WW3 Global)`: Recomendado por velocidad y descarga directa de parámetros espectrales ($H_{m0}, T_p, \text{Dir}$).
@@ -124,7 +129,7 @@ res_fc = engine_fc.run_forecast(
 print("Pronóstico en costa:")
 print(res_fc.timeseries[["DateTime", "Hm0_AP", "Hm0_AS", "Tp_AS", "Dir_AS", "Ka_eff"]].head())
 
-# B. Para ejecutar Hindcasting Histórico:
+# B. Para ejecutar Hindcasting Histórico Atlas UV:
 engine_hc = WaveHindcastEngine(mode="hindcast", buoy_mode="1deg")
 res_hc = engine_hc.run_hindcast(
     lon=-71.6145,
@@ -134,4 +139,14 @@ res_hc = engine_hc.run_hindcast(
     end_date="2015-12-31",
 )
 print("Resumen histórico:", res_hc.summary_stats)
+
+# C. Para ejecutar Hindcasting Histórico ERA5 (requiere ~/.cdsapirc o era5_cds_key):
+engine_e5 = WaveHindcastEngine(
+    mode="era5",
+    buoy_mode="1deg",
+    era5_start_date="2024-01-01",
+    era5_end_date="2024-01-31",
+)
+res_e5 = engine_e5.run_era5(lon=-71.6145, lat=-33.0325, site_name="Valparaiso")
+print("Resumen ERA5:", res_e5.summary_stats)
 ```
